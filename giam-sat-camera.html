@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Giám sát camera</title>
+<style>
+  :root { --bg:#111; --fg:#eee; --card:#1e1e1e; --acc:#2d9cff; --bad:#ff4d4d; --ok:#35c46a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,sans-serif; padding:12px; max-width:640px; margin:auto; }
+  h1 { font-size:20px; margin:4px 0 10px; }
+  .stage { position:relative; background:#000; border-radius:10px; overflow:hidden; }
+  video { width:100%; display:block; }
+  #box { position:absolute; border:3px solid var(--bad); display:none; pointer-events:none; }
+  #status { position:absolute; left:8px; top:8px; padding:4px 10px; border-radius:20px; background:rgba(0,0,0,.65); font-size:14px; }
+  .card { background:var(--card); border-radius:10px; padding:12px; margin-top:10px; }
+  button { background:var(--acc); color:#fff; border:0; border-radius:8px; padding:12px 16px; font-size:16px; margin:3px 3px 3px 0; }
+  button.stop { background:var(--bad); }
+  label { display:block; margin:10px 0 2px; font-size:14px; }
+  input[type=range] { width:100%; }
+  .row { display:flex; align-items:center; gap:8px; }
+  #log { display:flex; flex-wrap:wrap; gap:6px; }
+  #log figure { margin:0; width:calc(50% - 3px); font-size:12px; }
+  #log img { width:100%; border-radius:6px; display:block; }
+  .alert { outline:4px solid var(--bad); }
+  small { opacity:.7; }
+</style>
+</head>
+<body>
+<h1>📷 Giám sát phát hiện người</h1>
+
+<div class="stage" id="stage">
+  <video id="video" playsinline muted autoplay></video>
+  <div id="box"></div>
+  <div id="status">Chưa bật</div>
+</div>
+
+<div class="card">
+  <button id="btnStart">▶ Bật camera</button>
+  <button id="btnStop" class="stop" style="display:none">■ Dừng</button>
+  <button id="btnSwitch" style="background:#555">🔄 Đổi camera</button>
+
+  <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI (dùng AI, tải mô hình ~5MB)</label>
+  <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo</label>
+  <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
+
+  <label>Độ nhạy chuyển động: <b id="vSens">2.0</b>% pixel thay đổi</label>
+  <input type="range" id="sens" min="0.5" max="10" step="0.5" value="2">
+
+  <label>Thời gian chờ giữa 2 lần báo: <b id="vCool">5</b> giây</label>
+  <input type="range" id="cool" min="2" max="30" step="1" value="5">
+  <small>Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS.</small>
+</div>
+
+<div class="card">
+  <b>Ảnh chụp khi phát hiện</b>
+  <div id="log"></div>
+</div>
+
+<!-- Thư viện AI (chỉ tải khi mở trang). Nếu không có mạng, vẫn dùng được chế độ phát hiện chuyển động. -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const video = $('video'), box = $('box'), statusEl = $('status'), stage = $('stage');
+const W = 160, H = 120;
+const small = document.createElement('canvas'); small.width = W; small.height = H;
+const sctx = small.getContext('2d', { willReadFrequently: true });
+
+let stream = null, timer = null, prev = null, facing = 'environment';
+let model = null, loadingModel = false, detecting = false;
+let lastAlert = 0, wakeLock = null, audioCtx = null;
+
+$('sens').oninput = e => $('vSens').textContent = Number(e.target.value).toFixed(1);
+$('cool').oninput = e => $('vCool').textContent = e.target.value;
+
+function setStatus(t, color) { statusEl.textContent = t; statusEl.style.color = color || '#fff'; }
+
+async function loadModel() {
+  if (model || loadingModel) return;
+  if (!window.cocoSsd) { setStatus('Không tải được AI, dùng chế độ chuyển động', '#ffb84d'); $('chkPerson').checked = false; return; }
+  loadingModel = true;
+  setStatus('Đang tải mô hình AI...', '#ffb84d');
+  try { model = await cocoSsd.load({ base: 'lite_mobilenet_v2' }); }
+  catch (e) { setStatus('Lỗi tải AI, chỉ dùng chuyển động', '#ffb84d'); $('chkPerson').checked = false; }
+  loadingModel = false;
+}
+
+async function start() {
+  try {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false
+    });
+  } catch (e) {
+    setStatus('Không mở được camera: ' + e.message, '#ff4d4d');
+    return;
+  }
+  video.srcObject = stream;
+  await video.play();
+  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  prev = null;
+  $('btnStart').style.display = 'none'; $('btnStop').style.display = '';
+  if ($('chkPerson').checked) await loadModel();
+  setStatus('Đang giám sát...', '#35c46a');
+  clearInterval(timer);
+  timer = setInterval(tick, 250);
+}
+
+function stop() {
+  clearInterval(timer);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null;
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  box.style.display = 'none';
+  $('btnStart').style.display = ''; $('btnStop').style.display = 'none';
+  setStatus('Đã dừng');
+}
+
+function motionRatio() {
+  sctx.drawImage(video, 0, 0, W, H);
+  const d = sctx.getImageData(0, 0, W, H).data;
+  const gray = new Uint8Array(W * H);
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) gray[j] = (d[i] * 0.3 + d[i+1] * 0.59 + d[i+2] * 0.11);
+  let changed = 0;
+  if (prev) for (let j = 0; j < gray.length; j++) if (Math.abs(gray[j] - prev[j]) > 25) changed++;
+  const ratio = prev ? changed / gray.length * 100 : 0;
+  prev = gray;
+  return ratio;
+}
+
+async function tick() {
+  if (!stream || video.readyState < 2 || detecting) return;
+  const ratio = motionRatio();
+  const thr = Number($('sens').value);
+  if (ratio < thr) { box.style.display = 'none'; stage.classList.remove('alert'); setStatus('Yên tĩnh (' + ratio.toFixed(1) + '%)', '#35c46a'); return; }
+
+  if (!$('chkPerson').checked) { trigger('Có chuyển động', null); return; }
+  if (!model) { await loadModel(); return; }
+
+  detecting = true;
+  try {
+    const preds = await model.detect(video);
+    const p = preds.filter(x => x.class === 'person' && x.score > 0.55).sort((a, b) => b.score - a.score)[0];
+    if (p) trigger('Phát hiện NGƯỜI (' + Math.round(p.score * 100) + '%)', p.bbox);
+    else { box.style.display = 'none'; stage.classList.remove('alert'); setStatus('Có chuyển động, không phải người', '#ffb84d'); }
+  } catch (e) {}
+  detecting = false;
+}
+
+function drawBox(b) {
+  if (!b) { box.style.display = 'none'; return; }
+  const k = video.clientWidth / video.videoWidth;
+  box.style.display = 'block';
+  box.style.left = b[0] * k + 'px'; box.style.top = b[1] * k + 'px';
+  box.style.width = b[2] * k + 'px'; box.style.height = b[3] * k + 'px';
+}
+
+function trigger(msg, bbox) {
+  drawBox(bbox);
+  stage.classList.add('alert');
+  setStatus('⚠ ' + msg, '#ff4d4d');
+  const now = Date.now();
+  if (now - lastAlert < Number($('cool').value) * 1000) return;
+  lastAlert = now;
+  if ($('chkSound').checked) beep();
+  if ($('chkNotify').checked && Notification.permission === 'granted') new Notification('Giám sát camera', { body: msg });
+  snapshot(msg);
+}
+
+function beep() {
+  if (!audioCtx) return;
+  [0, 0.3, 0.6].forEach(t => {
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = 'square'; o.frequency.value = 880;
+    g.gain.value = 0.2;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + 0.18);
+  });
+}
+
+function snapshot(msg) {
+  const c = document.createElement('canvas');
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  c.getContext('2d').drawImage(video, 0, 0);
+  const fig = document.createElement('figure');
+  const img = new Image(); img.src = c.toDataURL('image/jpeg', 0.7);
+  const cap = document.createElement('figcaption');
+  cap.textContent = new Date().toLocaleTimeString('vi-VN') + ' - ' + msg;
+  fig.append(img, cap);
+  $('log').prepend(fig);
+  while ($('log').children.length > 12) $('log').lastChild.remove();
+}
+
+$('btnStart').onclick = start;
+$('btnStop').onclick = stop;
+$('btnSwitch').onclick = () => { facing = facing === 'environment' ? 'user' : 'environment'; if (stream) start(); };
+$('chkNotify').onchange = e => { if (e.target.checked && 'Notification' in window) Notification.requestPermission(); };
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && stream && 'wakeLock' in navigator) {
+    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+});
+</script>
+</body>
+</html>
