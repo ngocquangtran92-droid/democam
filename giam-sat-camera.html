@@ -203,7 +203,9 @@ function beep() {
 function snapshot(msg) {
   const c = document.createElement('canvas');
   c.width = video.videoWidth; c.height = video.videoHeight;
-  c.getContext('2d').drawImage(video, 0, 0);
+  const cx = c.getContext('2d');
+  if ($('chkMirror').checked) { cx.translate(c.width, 0); cx.scale(-1, 1); }
+  cx.drawImage(video, 0, 0);
   const fig = document.createElement('figure');
   const img = new Image(); img.src = c.toDataURL('image/jpeg', 0.7);
   const cap = document.createElement('figcaption');
