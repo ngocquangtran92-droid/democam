@@ -59,6 +59,10 @@
   <label>Kiểu âm báo</label>
   <div class="row">
     <select id="sndStyle" style="flex:1;padding:10px;font-size:16px;border-radius:8px">
+      <option value="voice">Giọng nói: "Có người"</option>
+      <option value="chimevoice">Chuông nhẹ + giọng nói "Có người"</option>
+      <option value="welcome">Giọng nói: "Xin chào quý khách"</option>
+      <option value="chimewelcome">Chuông nhẹ + giọng nói "Xin chào quý khách"</option>
       <option value="soft">Chuông nhẹ nhàng</option>
       <option value="doorbell">Ding-dong (chuông cửa)</option>
       <option value="alarm">Còi báo động</option>
@@ -145,6 +149,7 @@ async function start() {
   $('chkMirror').checked = isFront;
   applyMirror();
   audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  unlockSpeech();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
   prev = null;
@@ -252,7 +257,17 @@ function beep() {
   if (audioCtx.state === 'suspended') audioCtx.resume();
   const v = Number($('vol').value) / 100;
   const style = $('sndStyle').value;
-  if (style === 'soft') {            // hai nốt sine ngân dài
+  if (style === 'voice') {           // đọc "Có người"
+    speak(v);
+  } else if (style === 'chimevoice') { // chuông nhẹ rồi đọc "Có người"
+    tone(784, 0, 0.8, 'sine', 0.3 * v);
+    setTimeout(() => speak(v), 500);
+  } else if (style === 'welcome') {  // đọc "Xin chào quý khách"
+    speak(v, 'Xin chào quý khách');
+  } else if (style === 'chimewelcome') { // chuông nhẹ rồi đọc "Xin chào quý khách"
+    tone(784, 0, 0.8, 'sine', 0.3 * v);
+    setTimeout(() => speak(v, 'Xin chào quý khách'), 500);
+  } else if (style === 'soft') {     // hai nốt sine ngân dài
     tone(784, 0, 1.2, 'sine', 0.35 * v);
     tone(988, 0.35, 1.4, 'sine', 0.35 * v);
   } else if (style === 'doorbell') { // ding-dong
@@ -261,6 +276,24 @@ function beep() {
   } else {                           // còi báo động như bản cũ
     [0, 0.3, 0.6].forEach(t => tone(880, t, 0.2, 'square', 0.25 * v));
   }
+}
+
+function speak(v, text) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text || 'Có người');
+  u.lang = 'vi-VN';
+  const voice = speechSynthesis.getVoices().find(x => x.lang && x.lang.toLowerCase().startsWith('vi'));
+  if (voice) u.voice = voice;
+  u.volume = v; u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+// iPhone cần "mở khóa" giọng nói bằng một lần bấm của người dùng
+function unlockSpeech() {
+  if (!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(' ');
+  u.volume = 0;
+  speechSynthesis.speak(u);
 }
 
 $('vol').oninput = e => $('vVol').textContent = e.target.value;
