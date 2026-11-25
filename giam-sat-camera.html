@@ -48,10 +48,21 @@
   <label class="row"><input type="checkbox" id="chkMirror"> Lật ngang hình (tự bật với camera trước)</label>
   <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI (dùng AI, tải mô hình ~5MB)</label>
   <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo</label>
+  <label>Kiểu âm báo</label>
+  <div class="row">
+    <select id="sndStyle" style="flex:1;padding:10px;font-size:16px;border-radius:8px">
+      <option value="soft">Chuông nhẹ nhàng</option>
+      <option value="doorbell">Ding-dong (chuông cửa)</option>
+      <option value="alarm">Còi báo động</option>
+    </select>
+    <button id="btnTest" style="background:#555;margin:0">🔊 Thử</button>
+  </div>
+  <label>Âm lượng: <b id="vVol">60</b>%</label>
+  <input type="range" id="vol" min="10" max="100" step="5" value="60">
   <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
 
-  <label>Độ nhạy chuyển động: <b id="vSens">2.0</b>% pixel thay đổi</label>
-  <input type="range" id="sens" min="0.5" max="10" step="0.5" value="2">
+  <label>Độ nhạy chuyển động: <b id="vSens">0.5</b>% pixel thay đổi (càng nhỏ càng nhạy)</label>
+  <input type="range" id="sens" min="0.1" max="5" step="0.1" value="0.5">
 
   <label>Thời gian chờ giữa 2 lần báo: <b id="vCool">5</b> giây</label>
   <input type="range" id="cool" min="2" max="30" step="1" value="5">
@@ -69,7 +80,7 @@
 <script>
 const $ = id => document.getElementById(id);
 const video = $('video'), box = $('box'), statusEl = $('status'), stage = $('stage');
-const W = 160, H = 120;
+const W = 320, H = 240;
 const small = document.createElement('canvas'); small.width = W; small.height = H;
 const sctx = small.getContext('2d', { willReadFrequently: true });
 
@@ -95,7 +106,7 @@ async function loadModel() {
 async function start() {
   try {
     if (stream) stream.getTracks().forEach(t => t.stop());
-    const vc = { width: { ideal: 640 }, height: { ideal: 480 } };
+    const vc = { width: { ideal: 1280 }, height: { ideal: 720 } };
     if (deviceId) vc.deviceId = { exact: deviceId }; else vc.facingMode = facing;
     stream = await navigator.mediaDevices.getUserMedia({ video: vc, audio: false });
   } catch (e) {
@@ -148,7 +159,7 @@ async function tick() {
   if (!stream || video.readyState < 2 || detecting) return;
   const ratio = motionRatio();
   const thr = Number($('sens').value);
-  if (ratio < thr) { box.style.display = 'none'; stage.classList.remove('alert'); setStatus('Yên tĩnh (' + ratio.toFixed(1) + '%)', '#35c46a'); return; }
+  if (ratio < thr) { box.style.display = 'none'; stage.classList.remove('alert'); setStatus('Yên tĩnh (' + ratio.toFixed(2) + '%)', '#35c46a'); return; }
 
   if (!$('chkPerson').checked) { trigger('Có chuyển động', null); return; }
   if (!model) { await loadModel(); return; }
@@ -189,16 +200,35 @@ function trigger(msg, bbox) {
   snapshot(msg);
 }
 
-function beep() {
-  if (!audioCtx) return;
-  [0, 0.3, 0.6].forEach(t => {
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = 'square'; o.frequency.value = 880;
-    g.gain.value = 0.2;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(audioCtx.currentTime + t); o.stop(audioCtx.currentTime + t + 0.18);
-  });
+function tone(freq, at, dur, type, vol) {
+  const t0 = audioCtx.currentTime + at;
+  const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.03);          // vào nhẹ
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);   // tắt dần
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(t0); o.stop(t0 + dur + 0.05);
 }
+
+function beep() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const v = Number($('vol').value) / 100;
+  const style = $('sndStyle').value;
+  if (style === 'soft') {            // hai nốt sine ngân dài
+    tone(784, 0, 1.2, 'sine', 0.35 * v);
+    tone(988, 0.35, 1.4, 'sine', 0.35 * v);
+  } else if (style === 'doorbell') { // ding-dong
+    tone(659, 0, 1.3, 'sine', 0.4 * v);
+    tone(523, 0.55, 1.6, 'sine', 0.4 * v);
+  } else {                           // còi báo động như bản cũ
+    [0, 0.3, 0.6].forEach(t => tone(880, t, 0.2, 'square', 0.25 * v));
+  }
+}
+
+$('vol').oninput = e => $('vVol').textContent = e.target.value;
+$('btnTest').onclick = beep;
 
 function snapshot(msg) {
   const c = document.createElement('canvas');
