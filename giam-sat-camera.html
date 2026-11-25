@@ -24,6 +24,11 @@
   #log img { width:100%; border-radius:6px; display:block; }
   .alert { outline:4px solid var(--bad); }
   small { opacity:.7; }
+  #saver { position:fixed; inset:0; background:#000; z-index:99; display:none; flex-direction:column;
+           align-items:center; justify-content:center; color:#333; text-align:center; touch-action:manipulation; }
+  #sdot { width:10px; height:10px; border-radius:50%; background:#1d5c35; margin-bottom:14px; }
+  #stext, #slast { font-size:13px; padding:0 20px; }
+  #shint { position:absolute; bottom:calc(env(safe-area-inset-bottom, 0px) + 20px); font-size:12px; color:#2a2a2a; }
 </style>
 </head>
 <body>
@@ -39,6 +44,8 @@
   <button id="btnStart">▶ Bật camera</button>
   <button id="btnStop" class="stop" style="display:none">■ Dừng</button>
   <button id="btnSwitch" style="background:#555">🔄 Trước/Sau</button>
+  <button id="btnSave" style="background:#444">🌙 Tiết kiệm pin</button>
+  <label class="row"><input type="checkbox" id="chkAuto"> Tự bật tiết kiệm pin sau 30 giây không chạm</label>
 
   <label>Chọn camera cụ thể (sau thường, góc rộng, zoom...)</label>
   <select id="camSelect" style="width:100%;padding:10px;font-size:16px;border-radius:8px">
@@ -74,6 +81,13 @@
   <div id="log"></div>
 </div>
 
+<div id="saver">
+  <div id="sdot"></div>
+  <div id="stext">Đang giám sát</div>
+  <div id="slast"></div>
+  <div id="shint">Chạm vào màn hình để thoát</div>
+</div>
+
 <!-- Thư viện AI (chỉ tải khi mở trang). Nếu không có mạng, vẫn dùng được chế độ phát hiện chuyển động. -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
@@ -91,7 +105,11 @@ let lastAlert = 0, wakeLock = null, audioCtx = null;
 $('sens').oninput = e => $('vSens').textContent = Number(e.target.value).toFixed(1);
 $('cool').oninput = e => $('vCool').textContent = e.target.value;
 
-function setStatus(t, color) { statusEl.textContent = t; statusEl.style.color = color || '#fff'; }
+function setStatus(t, color) {
+  statusEl.textContent = t; statusEl.style.color = color || '#fff';
+  $('stext').textContent = t;
+  $('sdot').style.background = (color === '#ff4d4d') ? '#ff4d4d' : '#1d5c35';
+}
 
 async function loadModel() {
   if (model || loadingModel) return;
@@ -195,6 +213,7 @@ function trigger(msg, bbox) {
   const now = Date.now();
   if (now - lastAlert < Number($('cool').value) * 1000) return;
   lastAlert = now;
+  $('slast').textContent = 'Báo lần cuối: ' + new Date().toLocaleTimeString('vi-VN');
   if ($('chkSound').checked) beep();
   if ($('chkNotify').checked && Notification.permission === 'granted') new Notification('Giám sát camera', { body: msg });
   snapshot(msg);
@@ -245,8 +264,31 @@ function snapshot(msg) {
   while ($('log').children.length > 12) $('log').lastChild.remove();
 }
 
-$('btnStart').onclick = start;
-$('btnStop').onclick = stop;
+let saverOn = false, idleTimer = null;
+
+function enterSaver() {
+  if (!stream) return;
+  saverOn = true;
+  clearTimeout(idleTimer);
+  $('saver').style.display = 'flex';
+}
+function exitSaver() {
+  saverOn = false;
+  $('saver').style.display = 'none';
+  armIdle();
+}
+function armIdle() {
+  clearTimeout(idleTimer);
+  if ($('chkAuto').checked && stream && !saverOn) idleTimer = setTimeout(enterSaver, 30000);
+}
+
+$('btnSave').onclick = enterSaver;
+$('saver').onclick = exitSaver;
+$('chkAuto').onchange = armIdle;
+['touchstart', 'click'].forEach(ev => document.addEventListener(ev, armIdle, { passive: true }));
+
+$('btnStart').onclick = async () => { await start(); armIdle(); };
+$('btnStop').onclick = () => { stop(); exitSaver(); };
 let deviceId = null;
 
 async function listCameras() {
