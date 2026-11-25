@@ -45,6 +45,7 @@
     <option value="">Mặc định</option>
   </select>
 
+  <label class="row"><input type="checkbox" id="chkMirror"> Lật ngang hình (tự bật với camera trước)</label>
   <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI (dùng AI, tải mô hình ~5MB)</label>
   <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo</label>
   <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
@@ -105,6 +106,11 @@ async function start() {
   video.srcObject = stream;
   await video.play();
   await listCameras();
+  const st = stream.getVideoTracks()[0].getSettings();
+  const lbl = (stream.getVideoTracks()[0].label || '').toLowerCase();
+  const isFront = st.facingMode === 'user' || /front|user|trước|truoc/.test(lbl);
+  $('chkMirror').checked = isFront;
+  applyMirror();
   audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
@@ -157,11 +163,17 @@ async function tick() {
   detecting = false;
 }
 
+function applyMirror() {
+  video.style.transform = $('chkMirror').checked ? 'scaleX(-1)' : 'none';
+}
+$('chkMirror').onchange = applyMirror;
+
 function drawBox(b) {
   if (!b) { box.style.display = 'none'; return; }
   const k = video.clientWidth / video.videoWidth;
+  const x = $('chkMirror').checked ? video.videoWidth - b[0] - b[2] : b[0];
   box.style.display = 'block';
-  box.style.left = b[0] * k + 'px'; box.style.top = b[1] * k + 'px';
+  box.style.left = x * k + 'px'; box.style.top = b[1] * k + 'px';
   box.style.width = b[2] * k + 'px'; box.style.height = b[3] * k + 'px';
 }
 
