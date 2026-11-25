@@ -25,8 +25,17 @@
   .alert { outline:4px solid var(--bad); }
   small { opacity:.7; }
   #zc { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
-  button.on { outline:3px solid #fff; }
-  input.txt { width:100%; padding:10px; font-size:16px; border-radius:8px; border:1px solid #444; background:#111; color:#eee; margin-top:6px; }
+  button.on { outline:3px solid var(--fg); }
+  :root { color-scheme: dark; }
+  :root.light { --bg:#f2f3f5; --fg:#1b1b1b; --card:#ffffff; color-scheme: light; }
+  select { background:var(--bg); color:var(--fg); border:1px solid #888; }
+  .sw.sw-theme { background:#555; }
+  .sw.sw-theme.sw-on { background:#e0a800; }
+  .sw { flex:none; width:64px; height:36px; border-radius:18px; border:0; padding:0; margin:0; background:#b33; position:relative; transition:background .2s; }
+  .sw i { position:absolute; top:4px; left:4px; width:28px; height:28px; border-radius:50%; background:#fff; transition:transform .2s; }
+  .sw.sw-on { background:#35c46a; }
+  .sw.sw-on i { transform:translateX(28px); }
+  input.txt { width:100%; padding:10px; font-size:16px; border-radius:8px; border:1px solid #888; background:var(--bg); color:var(--fg); margin-top:6px; }
   #sendStatus { display:block; margin-top:8px; opacity:1; }
   #saver { position:fixed; inset:0; background:#000; z-index:99; display:none; flex-direction:column;
            align-items:center; justify-content:center; color:#333; text-align:center; touch-action:manipulation; }
@@ -36,7 +45,14 @@
 </style>
 </head>
 <body>
-<h1>📷 Giám sát phát hiện người</h1>
+<div class="row" style="justify-content:space-between">
+  <h1>📷 Giám sát phát hiện người</h1>
+  <div class="row" style="gap:6px;flex:none">
+    <span>🌙</span>
+    <button id="btnTheme" class="sw sw-theme" role="switch" aria-checked="false" aria-label="Giao diện sáng hoặc tối"><i></i></button>
+    <span>☀️</span>
+  </div>
+</div>
 
 <div class="stage" id="stage">
   <video id="video" playsinline muted autoplay></video>
@@ -61,6 +77,7 @@
   <button id="btnStop" class="stop" style="display:none">■ Dừng</button>
   <button id="btnSwitch" style="background:#555">🔄 Trước/Sau</button>
   <button id="btnSave" style="background:#444">🌙 Tiết kiệm pin</button>
+  <button id="btnReload" style="background:#444">🔄 Tải lại</button>
   <label class="row"><input type="checkbox" id="chkAuto"> Tự bật tiết kiệm pin sau 30 giây không chạm</label>
 
   <label>Chọn camera cụ thể (sau thường, góc rộng, zoom...)</label>
@@ -85,11 +102,12 @@
     </select>
     <button id="btnTest" style="background:#555;margin:0">🔊 Thử</button>
   </div>
-  <label id="volLabel">Âm lượng: <b id="vVol">60</b>%</label>
-  <div class="row">
-    <input type="range" id="vol" min="10" max="100" step="5" value="60" style="flex:1">
-    <button id="btnMute" style="background:#555;margin:0;min-width:120px">🔊 Đang bật</button>
+  <div class="row" style="justify-content:space-between;margin-top:10px">
+    <span id="muteLabel" style="font-size:16px">🔊 Âm thanh: BẬT</span>
+    <button id="btnMute" class="sw sw-on" role="switch" aria-checked="true" aria-label="Bật/tắt âm thanh"><i></i></button>
   </div>
+  <label id="volLabel">Âm lượng: <b id="vVol">60</b>%</label>
+  <input type="range" id="vol" min="10" max="100" step="5" value="60">
   <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
 
   <label>Độ nhạy chuyển động: <b id="vSens">0.5</b>% pixel thay đổi (càng nhỏ càng nhạy)</label>
@@ -103,6 +121,8 @@
 
 <div class="card">
   <b>Ảnh chụp khi phát hiện</b>
+  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
+  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
   <div id="log"></div>
 </div>
 
@@ -275,11 +295,12 @@ let muted = false;
 function setMute(m) {
   muted = m;
   const b = $('btnMute');
-  b.textContent = muted ? '🔇 Đã tắt tiếng' : '🔊 Đang bật';
-  b.style.background = muted ? '#b33' : '#555';
-  $('vol').style.display = muted ? 'none' : '';
-  $('volLabel').style.display = muted ? 'none' : '';
-  b.style.flex = muted ? '1' : '';
+  b.classList.toggle('sw-on', !muted);
+  b.setAttribute('aria-checked', String(!muted));
+  $('muteLabel').textContent = muted ? '🔇 Âm thanh: TẮT' : '🔊 Âm thanh: BẬT';
+  $('vol').disabled = muted;
+  $('vol').style.opacity = muted ? '0.3' : '';
+  $('volLabel').style.opacity = muted ? '0.3' : '';
 }
 
 function beep() {
@@ -330,6 +351,7 @@ function unlockSpeech() {
 $('vol').oninput = e => $('vVol').textContent = e.target.value;
 $('btnTest').onclick = beep;
 $('btnMute').onclick = () => { setMute(!muted); saveSettings(); };
+$('muteLabel').onclick = () => $('btnMute').click();
 
 function snapshot(msg) {
   const c = document.createElement('canvas');
@@ -343,7 +365,7 @@ function snapshot(msg) {
   cap.textContent = new Date().toLocaleTimeString('vi-VN') + ' - ' + msg;
   fig.append(img, cap);
   $('log').prepend(fig);
-  while ($('log').children.length > 20) $('log').lastChild.remove(); // giữ 20 ảnh mới nhất
+  trimShots(); // giữ đúng số ảnh mới nhất theo thanh kéo
 }
 
 if (!navigator.vibrate) {
@@ -504,7 +526,7 @@ if (window.ResizeObserver) new ResizeObserver(redrawZones).observe(stage);
 
 /* ===== Lưu / đọc cài đặt ===== */
 const SAVE_KEY = 'camSettings.v1';
-const SAVE_VALUES = ['sens', 'cool', 'vol', 'sndStyle'];
+const SAVE_VALUES = ['sens', 'cool', 'vol', 'sndStyle', 'shots'];
 const SAVE_CHECKS = ['chkPerson', 'chkSound', 'chkVibe', 'chkAuto'];
 
 function saveSettings() {
@@ -514,6 +536,7 @@ function saveSettings() {
     SAVE_CHECKS.forEach(id => { if (!(id === 'chkVibe' && !navigator.vibrate)) s[id] = $(id).checked; });
     s.chkNotify = $('chkNotify').checked && typeof Notification !== 'undefined' && Notification.permission === 'granted';
     s.muted = muted; s.facing = facing; s.deviceId = deviceId; s.zones = zones;
+    s.light = document.documentElement.classList.contains('light');
     localStorage.setItem(SAVE_KEY, JSON.stringify(s));
   } catch (e) {}
 }
@@ -530,6 +553,7 @@ function loadSettings() {
     $('vSens').textContent = Number($('sens').value).toFixed(1);
     $('vCool').textContent = $('cool').value;
     $('vVol').textContent = $('vol').value;
+    if (typeof s.light === 'boolean') setTheme(s.light);
     setMute(!!s.muted);
     if (s.facing === 'user' || s.facing === 'environment') facing = s.facing;
     deviceId = s.deviceId || null;
@@ -547,8 +571,33 @@ $('btnReset').onclick = () => {
   location.reload();
 };
 
+$('btnReload').onclick = () => {
+  if ($('log').children.length && !confirm('Tải lại trang sẽ xóa các ảnh chụp đang hiển thị. Tiếp tục?')) return;
+  location.reload();
+};
+
+function trimShots() {
+  const n = Number($('shots').value);
+  $('vShots').textContent = n;
+  while ($('log').children.length > n) $('log').lastChild.remove();
+}
+$('shots').addEventListener('input', trimShots);
+
+function setTheme(light) {
+  document.documentElement.classList.toggle('light', light);
+  $('btnTheme').classList.toggle('sw-on', light);
+  $('btnTheme').setAttribute('aria-checked', String(light));
+}
+$('btnTheme').onclick = () => {
+  setTheme(!document.documentElement.classList.contains('light'));
+  saveSettings();
+};
+// Mặc định theo giao diện của điện thoại, nếu bạn đã chọn thì dùng lựa chọn đã lưu
+setTheme(!!(window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches));
+
 loadSettings();
 buildMask();
+trimShots();
 </script>
 </body>
 </html>
