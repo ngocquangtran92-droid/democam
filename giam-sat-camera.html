@@ -55,7 +55,7 @@
   <label class="row"><input type="checkbox" id="chkMirror"> Lật ngang hình (tự bật với camera trước)</label>
   <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI (dùng AI, tải mô hình ~5MB)</label>
   <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo</label>
-  <label class="row"><input type="checkbox" id="chkVibe" checked> <span id="vibeText">Rung khi phát hiện</span></label>
+  <label class="row" id="vibeRow"><input type="checkbox" id="chkVibe" checked> <span id="vibeText">Rung khi phát hiện</span></label>
   <label>Kiểu âm báo</label>
   <div class="row">
     <select id="sndStyle" style="flex:1;padding:10px;font-size:16px;border-radius:8px">
@@ -285,6 +285,7 @@ function snapshot(msg) {
 if (!navigator.vibrate) {
   $('chkVibe').checked = false;
   $('chkVibe').disabled = true;
+  $('vibeRow').style.opacity = '0.4';
   $('vibeText').textContent = 'Rung (thiết bị/trình duyệt này không hỗ trợ, iPhone không có)';
 }
 $('chkVibe').onchange = e => { if (e.target.checked && navigator.vibrate) navigator.vibrate(200); };
