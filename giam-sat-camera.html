@@ -62,6 +62,22 @@
 </div>
 
 <div class="card">
+  <button id="btnStart">▶ Bật camera</button>
+  <button id="btnStop" class="stop" style="display:none">■ Dừng</button>
+  <button id="btnSwitch" style="background:#555">🔄 Trước/Sau</button>
+  <button id="btnSave" style="background:#444">🌙 Tiết kiệm pin</button>
+  <button id="btnReload" style="background:#444">🔄 Tải lại</button>
+
+  <label>Chọn camera cụ thể (sau thường, góc rộng, zoom...)</label>
+  <select id="camSelect" style="width:100%;padding:10px;font-size:16px;border-radius:8px">
+    <option value="">Mặc định</option>
+  </select>
+
+  <label class="row"><input type="checkbox" id="chkMirror"> Lật ngang hình (tự bật với camera trước)</label>
+  <label class="row"><input type="checkbox" id="chkAuto"> Tự bật tiết kiệm pin sau 30 giây không chạm</label>
+</div>
+
+<div class="card">
   <b>Vùng giám sát</b>
   <div style="margin-top:6px">
     <button id="btnZoneIn" style="background:#1f8f4a">➕ Vẽ vùng canh</button>
@@ -73,22 +89,31 @@
 </div>
 
 <div class="card">
-  <button id="btnStart">▶ Bật camera</button>
-  <button id="btnStop" class="stop" style="display:none">■ Dừng</button>
-  <button id="btnSwitch" style="background:#555">🔄 Trước/Sau</button>
-  <button id="btnSave" style="background:#444">🌙 Tiết kiệm pin</button>
-  <button id="btnReload" style="background:#444">🔄 Tải lại</button>
-  <label class="row"><input type="checkbox" id="chkAuto"> Tự bật tiết kiệm pin sau 30 giây không chạm</label>
-
-  <label>Chọn camera cụ thể (sau thường, góc rộng, zoom...)</label>
-  <select id="camSelect" style="width:100%;padding:10px;font-size:16px;border-radius:8px">
-    <option value="">Mặc định</option>
-  </select>
-
-  <label class="row"><input type="checkbox" id="chkMirror"> Lật ngang hình (tự bật với camera trước)</label>
+  <b>🎯 Phát hiện</b>
   <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI (dùng AI, tải mô hình ~5MB)</label>
-  <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo</label>
-  <label class="row" id="vibeRow"><input type="checkbox" id="chkVibe" checked> <span id="vibeText">Rung khi phát hiện</span></label>
+
+  <label>Độ tin cậy nhận diện người: từ <b id="vConf">75</b>% trở lên mới báo</label>
+  <input type="range" id="conf" min="40" max="95" step="5" value="75">
+
+  <label>Độ nhạy chuyển động: <b id="vSens">0.5</b>% pixel thay đổi (càng nhỏ càng nhạy)</label>
+  <input type="range" id="sens" min="0.1" max="5" step="0.1" value="0.5">
+
+  <label>Thời gian chờ giữa 2 lần báo: <b id="vCool">5</b> giây</label>
+  <input type="range" id="cool" min="2" max="30" step="1" value="5">
+</div>
+
+<div class="card">
+  <b>🔔 Âm thanh &amp; cảnh báo</b>
+  <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo khi phát hiện</label>
+
+  <div class="row" style="justify-content:space-between;margin-top:10px">
+    <span id="muteLabel" style="font-size:16px">🔊 Âm thanh: BẬT</span>
+    <button id="btnMute" class="sw sw-on" role="switch" aria-checked="true" aria-label="Bật/tắt âm thanh"><i></i></button>
+  </div>
+
+  <label id="volLabel">Âm lượng: <b id="vVol">60</b>%</label>
+  <input type="range" id="vol" min="10" max="100" step="5" value="60">
+
   <label>Kiểu âm báo</label>
   <div>
     <select id="sndStyle" style="width:100%;padding:10px;font-size:16px;border-radius:8px">
@@ -102,21 +127,9 @@
     </select>
     <button id="btnTest" style="background:#555;margin:8px 0 0;width:100%">🔊 Thử âm báo</button>
   </div>
-  <div class="row" style="justify-content:space-between;margin-top:10px">
-    <span id="muteLabel" style="font-size:16px">🔊 Âm thanh: BẬT</span>
-    <button id="btnMute" class="sw sw-on" role="switch" aria-checked="true" aria-label="Bật/tắt âm thanh"><i></i></button>
-  </div>
-  <label id="volLabel">Âm lượng: <b id="vVol">60</b>%</label>
-  <input type="range" id="vol" min="10" max="100" step="5" value="60">
+
+  <label class="row" id="vibeRow"><input type="checkbox" id="chkVibe" checked> <span id="vibeText">Rung khi phát hiện</span></label>
   <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
-
-  <label>Độ nhạy chuyển động: <b id="vSens">0.5</b>% pixel thay đổi (càng nhỏ càng nhạy)</label>
-  <input type="range" id="sens" min="0.1" max="5" step="0.1" value="0.5">
-
-  <label>Thời gian chờ giữa 2 lần báo: <b id="vCool">5</b> giây</label>
-  <input type="range" id="cool" min="2" max="30" step="1" value="5">
-  <small>Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.</small>
-  <div><button id="btnReset" style="background:#555;margin-top:10px">♻ Đặt lại cài đặt</button></div>
 </div>
 
 <div class="card">
@@ -124,6 +137,11 @@
   <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
   <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
   <div id="log"></div>
+</div>
+
+<div class="card">
+  <small>Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.</small>
+  <div><button id="btnReset" style="background:#555;margin-top:10px">♻ Đặt lại cài đặt</button></div>
 </div>
 
 <div id="saver">
@@ -149,6 +167,7 @@ let lastAlert = 0, wakeLock = null, audioCtx = null;
 
 $('sens').oninput = e => $('vSens').textContent = Number(e.target.value).toFixed(1);
 $('cool').oninput = e => $('vCool').textContent = e.target.value;
+$('conf').oninput = e => $('vConf').textContent = e.target.value;
 
 let lastStatusKey = '';
 function setStatus(t, color) {
@@ -241,7 +260,7 @@ async function tick() {
   detecting = true;
   try {
     const preds = await model.detect(video);
-    const persons = preds.filter(x => x.class === 'person' && x.score > 0.55);
+    const persons = preds.filter(x => x.class === 'person' && x.score >= Number($('conf').value) / 100);   // ngưỡng theo thanh kéo, mặc định 75%
     const p = persons.filter(x => bboxInZone(x.bbox)).sort((a, b) => b.score - a.score)[0];
     if (p) trigger('Phát hiện NGƯỜI (' + Math.round(p.score * 100) + '%)', p.bbox);
     else {
@@ -526,7 +545,7 @@ if (window.ResizeObserver) new ResizeObserver(redrawZones).observe(stage);
 
 /* ===== Lưu / đọc cài đặt ===== */
 const SAVE_KEY = 'camSettings.v1';
-const SAVE_VALUES = ['sens', 'cool', 'vol', 'sndStyle', 'shots'];
+const SAVE_VALUES = ['sens', 'cool', 'vol', 'sndStyle', 'shots', 'conf'];
 const SAVE_CHECKS = ['chkPerson', 'chkSound', 'chkVibe', 'chkAuto'];
 
 function saveSettings() {
@@ -552,6 +571,7 @@ function loadSettings() {
     if (s.chkNotify && typeof Notification !== 'undefined' && Notification.permission === 'granted') $('chkNotify').checked = true;
     $('vSens').textContent = Number($('sens').value).toFixed(1);
     $('vCool').textContent = $('cool').value;
+    $('vConf').textContent = $('conf').value;
     $('vVol').textContent = $('vol').value;
     if (typeof s.light === 'boolean') setTheme(s.light);
     setMute(!!s.muted);
