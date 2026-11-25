@@ -55,6 +55,7 @@
   <label class="row"><input type="checkbox" id="chkMirror"> Lật ngang hình (tự bật với camera trước)</label>
   <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI (dùng AI, tải mô hình ~5MB)</label>
   <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo</label>
+  <label class="row"><input type="checkbox" id="chkVibe" checked> <span id="vibeText">Rung khi phát hiện</span></label>
   <label>Kiểu âm báo</label>
   <div class="row">
     <select id="sndStyle" style="flex:1;padding:10px;font-size:16px;border-radius:8px">
@@ -64,8 +65,11 @@
     </select>
     <button id="btnTest" style="background:#555;margin:0">🔊 Thử</button>
   </div>
-  <label>Âm lượng: <b id="vVol">60</b>%</label>
-  <input type="range" id="vol" min="10" max="100" step="5" value="60">
+  <label id="volLabel">Âm lượng: <b id="vVol">60</b>%</label>
+  <div class="row">
+    <input type="range" id="vol" min="10" max="100" step="5" value="60" style="flex:1">
+    <button id="btnMute" style="background:#555;margin:0;min-width:120px">🔊 Đang bật</button>
+  </div>
   <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
 
   <label>Độ nhạy chuyển động: <b id="vSens">0.5</b>% pixel thay đổi (càng nhỏ càng nhạy)</label>
@@ -215,6 +219,7 @@ function trigger(msg, bbox) {
   lastAlert = now;
   $('slast').textContent = 'Báo lần cuối: ' + new Date().toLocaleTimeString('vi-VN');
   if ($('chkSound').checked) beep();
+  if ($('chkVibe').checked && navigator.vibrate) navigator.vibrate([250, 120, 250]);
   if ($('chkNotify').checked && Notification.permission === 'granted') new Notification('Giám sát camera', { body: msg });
   snapshot(msg);
 }
@@ -230,7 +235,19 @@ function tone(freq, at, dur, type, vol) {
   o.start(t0); o.stop(t0 + dur + 0.05);
 }
 
+let muted = false;
+function setMute(m) {
+  muted = m;
+  const b = $('btnMute');
+  b.textContent = muted ? '🔇 Đã tắt tiếng' : '🔊 Đang bật';
+  b.style.background = muted ? '#b33' : '#555';
+  $('vol').style.display = muted ? 'none' : '';
+  $('volLabel').style.display = muted ? 'none' : '';
+  b.style.flex = muted ? '1' : '';
+}
+
 function beep() {
+  if (muted) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   const v = Number($('vol').value) / 100;
@@ -248,6 +265,7 @@ function beep() {
 
 $('vol').oninput = e => $('vVol').textContent = e.target.value;
 $('btnTest').onclick = beep;
+$('btnMute').onclick = () => setMute(!muted);
 
 function snapshot(msg) {
   const c = document.createElement('canvas');
@@ -263,6 +281,13 @@ function snapshot(msg) {
   $('log').prepend(fig);
   while ($('log').children.length > 12) $('log').lastChild.remove();
 }
+
+if (!navigator.vibrate) {
+  $('chkVibe').checked = false;
+  $('chkVibe').disabled = true;
+  $('vibeText').textContent = 'Rung (thiết bị/trình duyệt này không hỗ trợ, iPhone không có)';
+}
+$('chkVibe').onchange = e => { if (e.target.checked && navigator.vibrate) navigator.vibrate(200); };
 
 let saverOn = false, idleTimer = null;
 
