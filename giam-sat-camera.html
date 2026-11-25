@@ -426,7 +426,9 @@ function bboxInZone(b) {
   const x0 = b[0] / vw, y0 = b[1] / vh, x1 = (b[0] + b[2]) / vw, y1 = (b[1] + b[3]) / vh;
   const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
   const inc = zones.filter(z => z.t === 'in'), exc = zones.filter(z => z.t === 'out');
-  const hit = inc.length ? inc.some(z => x0 < z.x + z.w && x1 > z.x && y0 < z.y + z.h && y1 > z.y) : true;
+  // Người tính là "trong vùng canh" khi chân (giữa đáy khung) hoặc tâm nằm trong vùng
+  const fx = cx, fy = y1;
+  const hit = inc.length ? inc.some(z => inside(z, fx, fy) || inside(z, cx, cy)) : true;
   return hit && !exc.some(z => inside(z, cx, cy));
 }
 
