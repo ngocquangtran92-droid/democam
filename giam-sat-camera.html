@@ -26,6 +26,8 @@
   small { opacity:.7; }
   #zc { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   button.on { outline:3px solid #fff; }
+  input.txt { width:100%; padding:10px; font-size:16px; border-radius:8px; border:1px solid #444; background:#111; color:#eee; margin-top:6px; }
+  #sendStatus { display:block; margin-top:8px; opacity:1; }
   #saver { position:fixed; inset:0; background:#000; z-index:99; display:none; flex-direction:column;
            align-items:center; justify-content:center; color:#333; text-align:center; touch-action:manipulation; }
   #sdot { width:10px; height:10px; border-radius:50%; background:#1d5c35; margin-bottom:14px; }
@@ -128,7 +130,11 @@ let lastAlert = 0, wakeLock = null, audioCtx = null;
 $('sens').oninput = e => $('vSens').textContent = Number(e.target.value).toFixed(1);
 $('cool').oninput = e => $('vCool').textContent = e.target.value;
 
+let lastStatusKey = '';
 function setStatus(t, color) {
+  const key = t + '|' + color;
+  if (key === lastStatusKey) return;           // không đổi thì khỏi ghi lại DOM 4 lần/giây
+  lastStatusKey = key;
   statusEl.textContent = t; statusEl.style.color = color || '#fff';
   $('stext').textContent = t;
   $('sdot').style.background = (color === '#ff4d4d') ? '#ff4d4d' : '#1d5c35';
@@ -189,14 +195,17 @@ function stop() {
 function motionRatio() {
   sctx.drawImage(video, 0, 0, W, H);
   const d = sctx.getImageData(0, 0, W, H).data;
-  const gray = new Uint8Array(W * H);
-  for (let i = 0, j = 0; i < d.length; i += 4, j++) gray[j] = (d[i] * 0.3 + d[i+1] * 0.59 + d[i+2] * 0.11);
+  const gray = grayBufs[grayIdx];            // dùng lại 2 bộ đệm, không tạo mảng mới mỗi lần
+  for (let i = 0, j = 0; i < d.length; i += 4, j++) gray[j] = (d[i] * 77 + d[i+1] * 150 + d[i+2] * 29) >> 8;
   let changed = 0;
   if (prev) for (let j = 0; j < gray.length; j++) if (mask[j] && Math.abs(gray[j] - prev[j]) > 25) changed++;
   const ratio = prev && maskCount ? changed / maskCount * 100 : 0;
   prev = gray;
+  grayIdx ^= 1;
   return ratio;
 }
+const grayBufs = [new Uint8Array(W * H), new Uint8Array(W * H)];
+let grayIdx = 0, lastDetect = 0;
 
 async function tick() {
   if (!stream || video.readyState < 2 || detecting) return;
@@ -207,6 +216,8 @@ async function tick() {
   if (!$('chkPerson').checked) { trigger('Có chuyển động', null); return; }
   if (!model) { await loadModel(); return; }
 
+  if (Date.now() - lastDetect < 500) return;   // chạy AI tối đa ~2 lần/giây để đỡ nóng máy, tốn pin
+  lastDetect = Date.now();
   detecting = true;
   try {
     const preds = await model.detect(video);
@@ -332,7 +343,7 @@ function snapshot(msg) {
   cap.textContent = new Date().toLocaleTimeString('vi-VN') + ' - ' + msg;
   fig.append(img, cap);
   $('log').prepend(fig);
-  while ($('log').children.length > 12) $('log').lastChild.remove();
+  while ($('log').children.length > 20) $('log').lastChild.remove(); // giữ 20 ảnh mới nhất
 }
 
 if (!navigator.vibrate) {
@@ -407,15 +418,12 @@ const zc = $('zc');
 
 const inside = (z, nx, ny) => nx >= z.x && nx <= z.x + z.w && ny >= z.y && ny <= z.y + z.h;
 
-function passPoint(nx, ny) {
-  const inc = zones.filter(z => z.t === 'in'), exc = zones.filter(z => z.t === 'out');
-  return (inc.length ? inc.some(z => inside(z, nx, ny)) : true) && !exc.some(z => inside(z, nx, ny));
-}
-
 function buildMask() {
+  const inc = zones.filter(z => z.t === 'in'), exc = zones.filter(z => z.t === 'out');
   maskCount = 0;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const ok = passPoint((x + 0.5) / W, (y + 0.5) / H) ? 1 : 0;
+    const nx = (x + 0.5) / W, ny = (y + 0.5) / H;
+    const ok = (inc.length ? inc.some(z => inside(z, nx, ny)) : true) && !exc.some(z => inside(z, nx, ny)) ? 1 : 0;
     mask[y * W + x] = ok; maskCount += ok;
   }
 }
