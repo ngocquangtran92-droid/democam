@@ -38,7 +38,12 @@
 <div class="card">
   <button id="btnStart">▶ Bật camera</button>
   <button id="btnStop" class="stop" style="display:none">■ Dừng</button>
-  <button id="btnSwitch" style="background:#555">🔄 Đổi camera</button>
+  <button id="btnSwitch" style="background:#555">🔄 Trước/Sau</button>
+
+  <label>Chọn camera cụ thể (sau thường, góc rộng, zoom...)</label>
+  <select id="camSelect" style="width:100%;padding:10px;font-size:16px;border-radius:8px">
+    <option value="">Mặc định</option>
+  </select>
 
   <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI (dùng AI, tải mô hình ~5MB)</label>
   <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo</label>
@@ -89,15 +94,17 @@ async function loadModel() {
 async function start() {
   try {
     if (stream) stream.getTracks().forEach(t => t.stop());
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false
-    });
+    const vc = { width: { ideal: 640 }, height: { ideal: 480 } };
+    if (deviceId) vc.deviceId = { exact: deviceId }; else vc.facingMode = facing;
+    stream = await navigator.mediaDevices.getUserMedia({ video: vc, audio: false });
   } catch (e) {
     setStatus('Không mở được camera: ' + e.message, '#ff4d4d');
+    if (deviceId) { deviceId = null; $('camSelect').value = ''; }
     return;
   }
   video.srcObject = stream;
   await video.play();
+  await listCameras();
   audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
@@ -196,7 +203,30 @@ function snapshot(msg) {
 
 $('btnStart').onclick = start;
 $('btnStop').onclick = stop;
-$('btnSwitch').onclick = () => { facing = facing === 'environment' ? 'user' : 'environment'; if (stream) start(); };
+let deviceId = null;
+
+async function listCameras() {
+  try {
+    const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+    const cur = stream && stream.getVideoTracks()[0].getSettings().deviceId;
+    const sel = $('camSelect');
+    sel.innerHTML = '';
+    cams.forEach((c, i) => {
+      const o = document.createElement('option');
+      o.value = c.deviceId;
+      o.textContent = c.label || ('Camera ' + (i + 1));
+      sel.appendChild(o);
+    });
+    if (cur) sel.value = cur;
+  } catch (e) {}
+}
+
+$('camSelect').onchange = e => { deviceId = e.target.value || null; if (stream) start(); };
+$('btnSwitch').onclick = () => {
+  facing = facing === 'environment' ? 'user' : 'environment';
+  deviceId = null;
+  if (stream) start();
+};
 $('chkNotify').onchange = e => { if (e.target.checked && 'Notification' in window) Notification.requestPermission(); };
 document.addEventListener('visibilitychange', async () => {
   if (document.visibilityState === 'visible' && stream && 'wakeLock' in navigator) {
