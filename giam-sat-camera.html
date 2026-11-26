@@ -26,6 +26,7 @@
   small { opacity:.7; }
   #zc { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   button.on { outline:3px solid var(--fg); }
+  button:disabled { opacity:.5; }
   :root { color-scheme: dark; }
   :root.light { --bg:#f2f3f5; --fg:#1b1b1b; --card:#ffffff; color-scheme: light; }
   select { background:var(--bg); color:var(--fg); border:1px solid #888; }
@@ -177,14 +178,33 @@ function setStatus(t, color) {
   $('sdot').style.background = (color === '#ff4d4d') ? '#ff4d4d' : '#1d5c35';
 }
 
+let modelError = '';
+
+// Khóa nút Bật camera cho đến khi mô hình AI tải xong (chỉ khi đang yêu cầu nhận diện người)
+function updateStartButton() {
+  const need = $('chkPerson').checked && !model;
+  const b = $('btnStart');
+  b.disabled = need;
+  b.textContent = need ? (loadingModel ? '⏳ Đang tải AI...' : '⚠ Chưa có AI') : '▶ Bật camera';
+}
+
 async function loadModel() {
   if (model || loadingModel) return;
-  if (!window.cocoSsd) { setStatus('Không tải được AI, dùng chế độ chuyển động', '#ffb84d'); $('chkPerson').checked = false; return; }
-  loadingModel = true;
-  setStatus('Đang tải mô hình AI...', '#ffb84d');
-  try { model = await cocoSsd.load({ base: 'lite_mobilenet_v2' }); }
-  catch (e) { setStatus('Lỗi tải AI, chỉ dùng chuyển động', '#ffb84d'); $('chkPerson').checked = false; }
-  loadingModel = false;
+  modelError = '';
+  if (!window.cocoSsd) {
+    modelError = 'Chưa tải được thư viện AI. Hãy bật mạng rồi bấm Tải lại, hoặc bỏ tick "Chỉ báo khi là NGƯỜI" để dùng chế độ chuyển động.';
+    setStatus(modelError, '#ffb84d'); updateStartButton(); return;
+  }
+  loadingModel = true; updateStartButton();
+  setStatus('Đang tải mô hình AI... (cần mạng)', '#ffb84d');
+  try {
+    model = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+    if (!stream) setStatus('Đã sẵn sàng. Bấm Bật camera', '#35c46a');
+  } catch (e) {
+    modelError = 'Chưa tải được mô hình AI. Kiểm tra mạng, app sẽ tự thử lại khi có mạng.';
+    setStatus(modelError, '#ffb84d');
+  }
+  loadingModel = false; updateStartButton();
 }
 
 async function start() {
@@ -662,6 +682,13 @@ loadSettings();
 buildMask();
 trimShots();
 updateVoiceHint();
+
+$('chkPerson').addEventListener('change', () => {
+  if ($('chkPerson').checked && !model) loadModel(); else updateStartButton();
+});
+window.addEventListener('online', () => { if ($('chkPerson').checked && !model && window.cocoSsd) loadModel(); });
+updateStartButton();
+if ($('chkPerson').checked) loadModel();
 </script>
 </body>
 </html>
