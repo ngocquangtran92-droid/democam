@@ -263,7 +263,7 @@ function motionRatio() {
   return ratio;
 }
 const grayBufs = [new Uint8Array(W * H), new Uint8Array(W * H)];
-let grayIdx = 0, lastDetect = 0;
+let grayIdx = 0, lastDetect = 0, detectErrors = 0;
 
 async function tick() {
   if (!stream || video.readyState < 2 || detecting) return;
@@ -278,15 +278,28 @@ async function tick() {
   lastDetect = Date.now();
   detecting = true;
   try {
-    const preds = await model.detect(video);
-    const persons = preds.filter(x => x.class === 'person' && x.score >= Number($('conf').value) / 100);   // ngưỡng theo thanh kéo, mặc định 75%
+    const preds = await model.detect(video, 20, 0.3);   // 0.3 để thanh độ tin cậy xuống được dưới 50%
+    detectErrors = 0;
+    const thr = Number($('conf').value) / 100;
+    const people = preds.filter(x => x.class === 'person');
+    const persons = people.filter(x => x.score >= thr);
     const p = persons.filter(x => bboxInZone(x.bbox)).sort((a, b) => b.score - a.score)[0];
     if (p) trigger('Phát hiện NGƯỜI (' + Math.round(p.score * 100) + '%)', p.bbox);
     else {
       box.style.display = 'none'; stage.classList.remove('alert');
-      setStatus(persons.length ? 'Có người nhưng nằm ngoài vùng giám sát' : 'Có chuyển động, không phải người', '#ffb84d');
+      const best = people.length ? Math.max(...people.map(x => x.score)) : 0;
+      setStatus(persons.length ? 'Có người nhưng nằm ngoài vùng giám sát'
+        : best ? 'Thấy người ' + Math.round(best * 100) + '% (dưới ngưỡng ' + Math.round(thr * 100) + '%)'
+        : 'Có chuyển động, không phải người', '#ffb84d');
     }
-  } catch (e) {}
+  } catch (e) {
+    setStatus('Lỗi nhận diện: ' + (e && e.message || e), '#ffb84d');
+    // Máy yếu hoặc WebGL lỗi: sau 3 lần lỗi liên tiếp thì chuyển sang chạy bằng CPU
+    if (++detectErrors >= 3 && window.tf && tf.getBackend && tf.getBackend() !== 'cpu') {
+      detectErrors = 0;
+      try { await tf.setBackend('cpu'); await tf.ready(); } catch (e2) {}
+    }
+  }
   detecting = false;
 }
 
@@ -312,10 +325,14 @@ function trigger(msg, bbox) {
   if (now - lastAlert < Number($('cool').value) * 1000) return;
   lastAlert = now;
   $('slast').textContent = 'Báo lần cuối: ' + new Date().toLocaleTimeString('vi-VN');
-  if ($('chkSound').checked) beep();
-  if ($('chkVibe').checked && navigator.vibrate) navigator.vibrate([250, 120, 250]);
-  if ($('chkNotify').checked && Notification.permission === 'granted') new Notification('Giám sát camera', { body: msg });
-  snapshot(msg);
+  // Chụp ảnh trước, và mỗi hành động chạy độc lập: một cái lỗi không được chặn các cái còn lại
+  try { snapshot(msg); } catch (e) { setStatus('Lỗi chụp ảnh: ' + (e && e.message || e), '#ffb84d'); }
+  try { if ($('chkSound').checked) beep(); } catch (e) {}
+  try { if ($('chkVibe').checked && navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {}
+  try {
+    if ($('chkNotify').checked && typeof Notification !== 'undefined' && Notification.permission === 'granted')
+      new Notification('Giám sát camera', { body: msg });
+  } catch (e) {}
 }
 
 function tone(freq, at, dur, type, vol) {
@@ -435,6 +452,7 @@ $('btnMute').onclick = () => { setMute(!muted); saveSettings(); };
 $('muteLabel').onclick = () => $('btnMute').click();
 
 function snapshot(msg) {
+  if (!video.videoWidth) return;
   const c = document.createElement('canvas');
   c.width = video.videoWidth; c.height = video.videoHeight;
   const cx = c.getContext('2d');
