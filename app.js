@@ -526,13 +526,24 @@ $('btnSwitch').onclick = () => {
   if (stream) start();
 };
 $('chkNotify').onchange = e => { if (e.target.checked && 'Notification' in window) Notification.requestPermission(); };
-document.addEventListener('visibilitychange', async () => {
+let audioReturnTimer = null;
+function scheduleAudioRecoveryAfterReturn() {
   if (document.visibilityState !== 'visible' || !stream) return;
-  await recoverAudioOutput();
-  if ('wakeLock' in navigator) {
-    try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-  }
+  clearTimeout(audioReturnTimer);
+  audioReturnTimer = setTimeout(async () => {
+    audioReturnTimer = null;
+    if (document.visibilityState !== 'visible' || !stream) return;
+    await recoverAudioOutput();
+    if ('wakeLock' in navigator) {
+      try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+    }
+  }, 900); // iOS cần thời gian khôi phục audio route sau khi quay lại ứng dụng
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') scheduleAudioRecoveryAfterReturn();
+  else { clearTimeout(audioReturnTimer); audioReturnTimer = null; }
 });
+window.addEventListener('pageshow', scheduleAudioRecoveryAfterReturn);
 
 /* ===== Vùng giám sát (toạ độ chuẩn hoá 0..1 trên hình gốc, không lật) ===== */
 let zones = [], drawMode = null, drawing = null, drawStart = null;
