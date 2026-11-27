@@ -1,7 +1,7 @@
 let language = 'vi';
 const UI_EN = {
   'Giám sát camera':'Camera Monitor', '📷 Giám sát phát hiện người':'📷 Person Detection Monitor', 'Chưa bật':'Not started',
-  '▶ Bật camera':'▶ Start Camera', '⏳ Đang tải AI...':'⏳ Loading AI...', '⚠ Chưa có AI':'⚠ AI unavailable', '■ Dừng':'■ Stop',
+  '▶ Bật camera':'▶ Start Camera', '▶ Bật camera (chỉ chuyển động)':'▶ Start camera (motion only)', '⏳ Đang tải AI...':'⏳ Loading AI...', '⚠ Chưa có AI':'⚠ AI unavailable', '■ Dừng':'■ Stop',
   '🔄 Trước/Sau':'🔄 Front/Back', '🌑 Màn hình đen':'🌑 Black Screen', '🔄 Tải lại':'🔄 Reload',
   'Chọn camera cụ thể (sau thường, góc rộng, zoom...)':'Select a camera (main, ultra-wide, telephoto...)', 'Mặc định':'Default',
   'Lật ngang hình (tự bật với camera trước)':'Mirror image (automatic for front camera)',
@@ -34,8 +34,9 @@ const UI_EN = {
   'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.':'Could not load app.js. Check that the file was uploaded with the correct name.'
 };
 Object.assign(UI_EN, {
-  'Chưa tải được thư viện AI. Hãy bật mạng rồi bấm Tải lại, hoặc bỏ tick "Chỉ báo khi là NGƯỜI" để dùng chế độ chuyển động.':'Could not load the AI library. Connect to the internet and reload, or uncheck "Alert only when a PERSON is detected" to use motion detection.',
-  'Chưa tải được mô hình AI. Kiểm tra mạng, app sẽ tự thử lại khi có mạng.':'Could not load the AI model. Check your connection; the app will retry when online.',
+  'Chưa tải được thư viện AI. Bạn vẫn có thể bấm nút chạy chế độ chỉ phát hiện chuyển động, hoặc kết nối mạng rồi thử lại.':'The AI library could not be loaded. You can still start in motion-only mode, or connect to the internet and try again.',
+  'Chưa tải được mô hình AI. Bạn vẫn có thể chạy chế độ chỉ phát hiện chuyển động; hãy bật lại "Chỉ báo khi là NGƯỜI" sau khi có mạng để thử AI.':'The AI model could not be loaded. You can still use motion-only mode; turn "Alert only when a PERSON is detected" back on after reconnecting to retry AI.',
+  'Đang giám sát chuyển động (AI chưa sẵn sàng)':'Monitoring motion only (AI unavailable)',
   'Xóa toàn bộ cài đặt và vùng giám sát đã lưu?':'Delete all saved settings and monitoring zones?',
   'Tải lại trang sẽ xóa các ảnh chụp đang hiển thị. Tiếp tục?':'Reloading will clear the snapshots currently shown. Continue?',
   'Thiếu file sounds.js nên không có âm báo. Hãy upload đủ 3 file.':'sounds.js is missing, so alerts have no sound. Upload all three files.',
@@ -116,24 +117,24 @@ function setStatus(t, color) {
   const shown = translateText(t);
   statusEl.textContent = shown; statusEl.style.color = color || '#fff';
   $('stext').textContent = shown;
-  $('sdot').style.background = (color === '#ff4d4d') ? '#ff4d4d' : '#1d5c35';
+  $('sdot').style.background = color === '#ff4d4d' || color === '#ffb84d' ? color : '#1d5c35';
 }
 
 let modelError = '';
 
-// Khóa nút Bật camera cho đến khi mô hình AI tải xong (chỉ khi đang yêu cầu nhận diện người)
+// Nếu AI chưa sẵn sàng, cho phép người dùng chọn chạy chế độ chuyển động.
 function updateStartButton() {
   const need = $('chkPerson').checked && !model;
   const b = $('btnStart');
-  b.disabled = need;
-  b.textContent = translateText(need ? (loadingModel ? '⏳ Đang tải AI...' : '⚠ Chưa có AI') : '▶ Bật camera');
+  b.disabled = false;
+  b.textContent = translateText(need ? '▶ Bật camera (chỉ chuyển động)' : '▶ Bật camera');
 }
 
 async function loadModel() {
   if (model || loadingModel) return;
   modelError = '';
   if (!window.cocoSsd) {
-    modelError = 'Chưa tải được thư viện AI. Hãy bật mạng rồi bấm Tải lại, hoặc bỏ tick "Chỉ báo khi là NGƯỜI" để dùng chế độ chuyển động.';
+    modelError = 'Chưa tải được thư viện AI. Bạn vẫn có thể bấm nút chạy chế độ chỉ phát hiện chuyển động, hoặc kết nối mạng rồi thử lại.';
     setStatus(modelError, '#ffb84d'); updateStartButton(); return;
   }
   loadingModel = true; updateStartButton();
@@ -142,7 +143,7 @@ async function loadModel() {
     model = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
     if (!stream) setStatus('Đã sẵn sàng. Bấm Bật camera', '#35c46a');
   } catch (e) {
-    modelError = 'Chưa tải được mô hình AI. Kiểm tra mạng, app sẽ tự thử lại khi có mạng.';
+    modelError = 'Chưa tải được mô hình AI. Bạn vẫn có thể chạy chế độ chỉ phát hiện chuyển động; hãy bật lại "Chỉ báo khi là NGƯỜI" sau khi có mạng để thử AI.';
     setStatus(modelError, '#ffb84d');
   }
   loadingModel = false; updateStartButton();
@@ -157,9 +158,27 @@ async function recoverAudioOutput() {
     if (audioCtx.state === 'running') { await audioCtx.suspend(); await audioCtx.resume(); }
   } catch (e) {}
 }
+
+function resetCameraState() {
+  clearInterval(timer);
+  timer = null;
+  if (stream) stream.getTracks().forEach(track => { try { track.stop(); } catch (e) {} });
+  stream = null;
+  try { video.pause(); } catch (e) {}
+  video.srcObject = null;
+  prev = null;
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  box.style.display = 'none';
+  stage.classList.remove('alert');
+  $('btnStart').style.display = '';
+  $('btnStop').style.display = 'none';
+  updateStartButton();
+}
+
 async function start() {
+  const motionOnlyFallback = $('chkPerson').checked && !model;
+  resetCameraState();
   try {
-    if (stream) stream.getTracks().forEach(t => t.stop());
     const vc = { width: { ideal: 1280 }, height: { ideal: 720 } };
     if (deviceId) vc.deviceId = { exact: deviceId }; else vc.facingMode = facing;
     if (eco) vc.frameRate = { ideal: 10 };      // tiết kiệm pin: khoảng 10 khung hình/giây
@@ -170,42 +189,42 @@ async function start() {
       delete vc.frameRate;                       // máy không nhận giới hạn khung hình: mở lại bình thường
       stream = await navigator.mediaDevices.getUserMedia({ video: vc, audio: false });
     }
+    video.srcObject = stream;
+    await video.play();
+    await listCameras();
+    const st = stream.getVideoTracks()[0].getSettings();
+    const lbl = (stream.getVideoTracks()[0].label || '').toLowerCase();
+    const isFront = st.facingMode === 'user' || /front|user|trước|truoc/.test(lbl);
+    $('chkMirror').checked = isFront;
+    applyMirror();
+    redrawZones();
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    unlockSpeech();
+    // Safari iOS có thể đổi route âm thanh sau khi bật camera; khôi phục phiên phát nếu API hỗ trợ.
+    try { if (navigator.audioSession && 'type' in navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    Object.keys(SOUNDS).forEach(k => loadSound(k).then(updateVoiceHint));
+    await recoverAudioOutput();
+    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+    if ($('chkPerson').checked && !motionOnlyFallback) await loadModel();
+    if (motionOnlyFallback) {
+      $('chkPerson').checked = false;
+      saveSettings();
+      updateStartButton();
+    }
+    $('btnStart').style.display = 'none'; $('btnStop').style.display = '';
+    setStatus(motionOnlyFallback ? 'Đang giám sát chuyển động (AI chưa sẵn sàng)' : 'Đang giám sát...', motionOnlyFallback ? '#ffb84d' : '#35c46a');
+    timer = setInterval(tick, eco ? 500 : 250);   // tiết kiệm pin: kiểm tra 2 lần/giây thay vì 4
   } catch (e) {
-    setStatus('Không mở được camera: ' + e.message, '#ff4d4d');
+    resetCameraState();
+    const message = e && e.message ? e.message : String(e);
+    setStatus('Không mở được camera: ' + message, '#ff4d4d');
     if (deviceId) { deviceId = null; $('camSelect').value = ''; saveSettings(); }
-    return;
+    updateStartButton();
   }
-  video.srcObject = stream;
-  await video.play();
-  await listCameras();
-  const st = stream.getVideoTracks()[0].getSettings();
-  const lbl = (stream.getVideoTracks()[0].label || '').toLowerCase();
-  const isFront = st.facingMode === 'user' || /front|user|trước|truoc/.test(lbl);
-  $('chkMirror').checked = isFront;
-  applyMirror();
-  redrawZones();
-  audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-  unlockSpeech();
-  // Safari iOS có thể đổi route âm thanh sau khi bật camera; khôi phục phiên phát nếu API hỗ trợ.
-  try { if (navigator.audioSession && 'type' in navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
-  Object.keys(SOUNDS).forEach(k => loadSound(k).then(updateVoiceHint));
-  await recoverAudioOutput();
-  try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-  prev = null;
-  $('btnStart').style.display = 'none'; $('btnStop').style.display = '';
-  if ($('chkPerson').checked) await loadModel();
-  setStatus('Đang giám sát...', '#35c46a');
-  clearInterval(timer);
-  timer = setInterval(tick, eco ? 500 : 250);   // tiết kiệm pin: kiểm tra 2 lần/giây thay vì 4
 }
 
 function stop() {
-  clearInterval(timer);
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  stream = null;
-  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
-  box.style.display = 'none';
-  $('btnStart').style.display = ''; $('btnStop').style.display = 'none';
+  resetCameraState();
   setStatus('Đã dừng');
 }
 
@@ -763,7 +782,7 @@ function applyInertLock(cardId, chkId) {
   const card = $(cardId), editable = $(chkId).checked;
   card.classList.toggle('locked', !editable);
   [...card.children].forEach(c => {
-    if (c.tagName === 'B' || c.classList.contains('keep')) return;   // tiêu đề, ô tích và vùng nội dung giữ nguyên
+    if (c.tagName === 'B' || c.tagName === 'SUMMARY' || c.classList.contains('keep')) return;   // tiêu đề và ô mở khóa vẫn dùng được
     if (editable) c.removeAttribute('inert'); else c.setAttribute('inert', '');
   });
 }

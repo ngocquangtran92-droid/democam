@@ -8,7 +8,10 @@
   :root { --bg:#111; --fg:#eee; --card:#1e1e1e; --acc:#2d9cff; --bad:#ff4d4d; --ok:#35c46a; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,sans-serif; padding:12px; max-width:640px; margin:auto; }
-  h1 { font-size:20px; margin:4px 0 10px; }
+  h1 { font-size:20px; margin:4px 0 10px; text-align:center; }
+  #quickControls { display:flex; align-items:center; justify-content:space-between; margin:0 0 8px; }
+  .theme-controls { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:14px; background:var(--card); border:1px solid #8885; box-shadow:0 4px 16px #0005; }
+  #quickControls .lang-pair { gap:5px; padding:4px; border-radius:13px; background:var(--card); border:1px solid #8885; box-shadow:0 4px 16px #0005; }
   .stage { position:relative; background:#000; border-radius:10px; overflow:hidden; }
   video { width:100%; display:block; }
   #box { position:absolute; border:3px solid var(--bad); display:none; pointer-events:none; }
@@ -16,6 +19,16 @@
   .card { background:var(--card); border-radius:10px; padding:12px; margin-top:10px; }
   button { background:var(--acc); color:#fff; border:0; border-radius:8px; padding:12px 16px; font-size:16px; margin:3px 3px 3px 0; }
   button.stop { background:var(--bad); }
+  #btnStart, #btnStop { display:block; width:100%; min-height:54px; margin:0 0 8px; font-size:18px; font-weight:750; box-shadow:0 3px 10px #0004; }
+  #btnStart { background:linear-gradient(135deg,#1c9a55,#14723d); }
+  details.card { padding:0; overflow:hidden; }
+  details.card > summary { display:flex; align-items:center; min-height:48px; padding:12px; cursor:pointer; list-style:none; }
+  details.card > summary::-webkit-details-marker { display:none; }
+  details.card > summary::after { content:'⌄'; margin-left:auto; font-size:20px; opacity:.75; transition:transform .15s; }
+  details.card[open] > summary::after { transform:rotate(180deg); }
+  details.card > summary:focus-visible { outline:2px solid var(--acc); outline-offset:-3px; border-radius:8px; }
+  details.card > label.keep { margin:0 12px 10px; }
+  details.card > .details-body { padding:0 12px 12px; }
   label { display:block; margin:10px 0 2px; font-size:14px; }
   input[type=range] { width:100%; }
   .row { display:flex; align-items:center; gap:8px; }
@@ -49,7 +62,7 @@
   .rs-thumb.on i, .rs-thumb:focus-visible i { transform:scale(1.15); }
   .card:not(.locked) input[type=range]:disabled + .rs { opacity:.35; pointer-events:none; }
   /* Khung bị khóa: mờ hết và không chạm vào được, trừ tiêu đề và ô tích mở khóa */
-  .card.locked > *:not(.keep):not(b) { opacity:.35; pointer-events:none; }
+  .card.locked > *:not(.keep):not(b):not(summary) { opacity:.35; pointer-events:none; }
   .sw.sw-theme.sw-on { background:#e0a800; }
   .sw { flex:none; width:64px; height:36px; border-radius:18px; border:0; padding:0; margin:0; background:#b33; position:relative; transition:background .2s; }
   .sw i { position:absolute; top:4px; left:4px; width:28px; height:28px; border-radius:50%; background:#fff; transition:transform .2s; }
@@ -65,22 +78,25 @@
 </style>
 </head>
 <body>
-<div class="row" style="justify-content:space-between">
+<header class="app-header">
   <h1>📷 Giám sát phát hiện người</h1>
-  <div class="row" style="gap:6px;flex:none">
-    <div class="lang-pair" role="group" aria-label="Chọn ngôn ngữ">
-      <button id="btnLangVi" class="lang-flag active" type="button" aria-label="Tiếng Việt" aria-pressed="true">
-        <svg class="lang-icon" width="24" height="16" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" rx="2" fill="#DA251D"/><path d="M12 2.4 14.1 7h5l-4 2.9 1.5 4.7-4.6-2.9-4.6 2.9 1.5-4.7-4-2.9h5z" fill="#FFDF00"/></svg>
-        <span>VIE</span>
-      </button>
-      <button id="btnLangEn" class="lang-flag" type="button" aria-label="English" aria-pressed="false">
-        <svg class="lang-icon" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M2.5 10h15M10 2c2.2 2.1 3.2 4.8 3.2 8S12.2 15.9 10 18M10 2C7.8 4.1 6.8 6.8 6.8 10s1 5.9 3.2 8"/></svg>
-        <span>ENG</span>
-      </button>
-    </div>
-    <span>🌙</span>
+</header>
+
+<div id="quickControls" aria-label="Cài đặt nhanh">
+  <div class="theme-controls" aria-label="Đổi giao diện">
+    <span aria-hidden="true">🌙</span>
     <button id="btnTheme" class="sw sw-theme" role="switch" aria-checked="false" aria-label="Giao diện sáng hoặc tối"><i></i></button>
-    <span>☀️</span>
+    <span aria-hidden="true">☀️</span>
+  </div>
+  <div class="lang-pair" role="group" aria-label="Chọn ngôn ngữ">
+    <button id="btnLangVi" class="lang-flag active" type="button" aria-label="Tiếng Việt" aria-pressed="true">
+      <svg class="lang-icon" width="24" height="16" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" rx="2" fill="#DA251D"/><path d="M12 2.4 14.1 7h5l-4 2.9 1.5 4.7-4.6-2.9-4.6 2.9 1.5-4.7-4-2.9h5z" fill="#FFDF00"/></svg>
+      <span>VIE</span>
+    </button>
+    <button id="btnLangEn" class="lang-flag" type="button" aria-label="English" aria-pressed="false">
+      <svg class="lang-icon" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M2.5 10h15M10 2c2.2 2.1 3.2 4.8 3.2 8S12.2 15.9 10 18M10 2C7.8 4.1 6.8 6.8 6.8 10s1 5.9 3.2 8"/></svg>
+      <span>ENG</span>
+    </button>
   </div>
 </div>
 
@@ -113,8 +129,9 @@
   <small>Giảm số khung hình camera và kiểm tra thưa hơn. Báo có thể trễ thêm khoảng nửa giây đến một giây.</small>
 </div>
 
-<div class="card">
-  <b>Vùng giám sát</b>
+<details class="card">
+  <summary><b>Vùng giám sát</b></summary>
+  <div class="details-body">
   <div style="margin-top:6px">
     <button id="btnZoneIn" style="background:#1f8f4a">➕ Vẽ vùng canh</button>
     <button id="btnZoneOut" style="background:#b33">🚫 Vẽ vùng bỏ qua</button>
@@ -123,10 +140,12 @@
   </div>
   <small id="zoneHint">Bật camera, bấm một nút vẽ rồi kéo ngón tay trên hình để khoanh vùng. Có vùng canh (xanh) thì chỉ canh trong vùng đó. Vùng bỏ qua (đỏ) dùng cho TV, gương, đường đi ngoài cổng.</small>
 </div>
+</details>
 
-<div class="card" id="detectCard">
-  <b>🎯 Phát hiện</b>
+<details class="card" id="detectCard">
+  <summary><b>🎯 Phát hiện</b></summary>
   <label class="row keep"><input type="checkbox" id="chkEditDetect"> 🔓 Tích để chỉnh phần Phát hiện (bỏ tích là khóa)</label>
+  <div class="details-body">
   <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI</label>
 
   <label>Độ tin cậy nhận diện người: từ <b id="vConf">75</b>% trở lên mới báo</label>
@@ -138,10 +157,12 @@
   <label>Thời gian chờ giữa 2 lần báo: <b id="vCool">5</b> giây</label>
   <input type="range" id="cool" min="2" max="30" step="1" value="5">
 </div>
+</details>
 
-<div class="card" id="soundCard">
-  <b>🔔 Âm thanh &amp; cảnh báo</b>
+<details class="card" id="soundCard">
+  <summary><b>🔔 Âm thanh &amp; cảnh báo</b></summary>
   <label class="row keep"><input type="checkbox" id="chkEditSound"> 🔓 Tích để chỉnh phần Âm thanh &amp; cảnh báo (bỏ tích là khóa)</label>
+  <div class="details-body">
   <div class="row" style="justify-content:space-between;margin-top:10px">
     <span id="muteLabel" style="font-size:16px">🔊 Âm thanh: BẬT</span>
     <button id="btnMute" class="sw sw-on" role="switch" aria-checked="true" aria-label="Bật/tắt âm thanh"><i></i></button>
@@ -166,21 +187,26 @@
   <label class="row" id="vibeRow"><input type="checkbox" id="chkVibe" checked> <span id="vibeText">Rung khi phát hiện</span></label>
   <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
 </div>
+</details>
 
-<div class="card" id="shotsCard">
-  <b>Ảnh chụp khi phát hiện</b>
-  <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
-  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
-  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
-  <div id="log" class="keep"></div>
-</div>
-
-<div class="card">
-  <b>⚙ Khác</b>
+<details class="card">
+  <summary><b>⚙ Khác</b></summary>
+  <div class="details-body">
   <small style="display:block;margin-top:6px">Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.</small>
   <div style="margin-top:14px;padding-top:14px;border-top:1px solid #8884">
     <button id="btnReset" style="background:#b33;margin:0">♻ Đặt lại toàn bộ cài đặt</button>
     <small style="display:block;margin-top:6px">Xóa mọi cài đặt và vùng giám sát đã lưu rồi tải lại trang. Ảnh chụp đang hiện trên trang cũng mất.</small>
+  </div>
+  </div>
+</details>
+
+<div class="card" id="shotsCard">
+  <b>Ảnh chụp khi phát hiện</b>
+  <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
+  <div class="details-body">
+  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
+  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
+  <div id="log" class="keep"></div>
   </div>
 </div>
 
@@ -195,7 +221,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=56"></script>
+<script src="app.js?v=58"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>
