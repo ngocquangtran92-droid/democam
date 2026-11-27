@@ -85,7 +85,7 @@ function applyLanguage() {
   if (viButton) { viButton.classList.toggle('active', language === 'vi'); viButton.setAttribute('aria-pressed', String(language === 'vi')); }
   if (enButton) { enButton.classList.toggle('active', language === 'en'); enButton.setAttribute('aria-pressed', String(language === 'en')); }
   if (typeof statusEl !== 'undefined' && statusEl) { statusEl.textContent = translateText(lastStatusText); $('stext').textContent = translateText(lastStatusText); }
-  if ($('slast')) $('slast').textContent = translateText($('slast').textContent);
+  if (typeof renderLastAlertTime === 'function') renderLastAlertTime();
   if (typeof updateStartButton === 'function') updateStartButton();
   if (typeof updateAudioDiagnostics === 'function') updateAudioDiagnostics();
   if (typeof setMute === 'function') setMute(muted);
@@ -109,6 +109,13 @@ const sctx = small.getContext('2d', { willReadFrequently: true });
 let stream = null, timer = null, prev = null, facing = 'environment';
 let model = null, loadingModel = false, detecting = false;
 let lastAlert = 0, wakeLock = null, audioCtx = null;
+
+function renderLastAlertTime() {
+  const el = $('slast');
+  if (!el || !lastAlert) return;
+  const locale = language === 'en' ? 'en-US' : 'vi-VN';
+  el.textContent = translateText('Báo lần cuối:') + ' ' + new Date(lastAlert).toLocaleTimeString(locale);
+}
 
 $('sens').oninput = e => $('vSens').textContent = Number(e.target.value).toFixed(1);
 $('cool').oninput = e => $('vCool').textContent = e.target.value;
@@ -378,7 +385,7 @@ function trigger(msg, bbox) {
   const now = Date.now();
   if (now - lastAlert < Number($('cool').value) * 1000) return;
   lastAlert = now;
-  $('slast').textContent = 'Báo lần cuối: ' + new Date().toLocaleTimeString('vi-VN');
+  renderLastAlertTime();
   // Chụp ảnh trước, và mỗi hành động chạy độc lập: một cái lỗi không được chặn các cái còn lại
   try { snapshot(msg); } catch (e) { setStatus('Lỗi chụp ảnh: ' + (e && e.message || e), '#ffb84d'); }
   try { beep(); } catch (e) {}   // beep() tự im khi công tắc Âm thanh đang TẮT
