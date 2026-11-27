@@ -1,11 +1,97 @@
+let language = 'vi';
+const UI_EN = {
+  'Giám sát camera':'Camera Monitor', '📷 Giám sát phát hiện người':'📷 Person Detection Monitor', 'Chưa bật':'Not started',
+  '▶ Bật camera':'▶ Start Camera', '⏳ Đang tải AI...':'⏳ Loading AI...', '⚠ Chưa có AI':'⚠ AI unavailable', '■ Dừng':'■ Stop',
+  '🔄 Trước/Sau':'🔄 Front/Back', '🌑 Màn hình đen':'🌑 Black Screen', '🔄 Tải lại':'🔄 Reload',
+  'Chọn camera cụ thể (sau thường, góc rộng, zoom...)':'Select a camera (main, ultra-wide, telephoto...)', 'Mặc định':'Default',
+  'Lật ngang hình (tự bật với camera trước)':'Mirror image (automatic for front camera)',
+  'Tự chuyển sang màn hình đen sau 30 giây không chạm':'Switch to black screen after 30 seconds of inactivity',
+  '🔋 Tiết kiệm pin: TẮT':'🔋 Battery saver: OFF', '🔋 Tiết kiệm pin: BẬT':'🔋 Battery saver: ON',
+  'Giảm số khung hình camera và kiểm tra thưa hơn. Báo có thể trễ thêm khoảng nửa giây đến một giây.':'Reduces camera frame rate and checks less often. Alerts may be delayed by about 0.5 to 1 second.',
+  'Vùng giám sát':'Monitoring Zones', '➕ Vẽ vùng canh':'➕ Draw monitoring zone', '🚫 Vẽ vùng bỏ qua':'🚫 Draw exclusion zone',
+  '↩ Xóa vùng cuối':'↩ Undo last zone', '🗑 Xóa hết':'🗑 Clear all',
+  'Bật camera, bấm một nút vẽ rồi kéo ngón tay trên hình để khoanh vùng. Có vùng canh (xanh) thì chỉ canh trong vùng đó. Vùng bỏ qua (đỏ) dùng cho TV, gương, đường đi ngoài cổng.':'Turn on the camera, choose a drawing mode, then drag on the image to mark an area. If a green monitoring zone exists, only that area is monitored. Use red exclusion zones for TVs, mirrors, or areas outside the gate.',
+  '🎯 Phát hiện':'🎯 Detection', '🔓 Tích để chỉnh phần Phát hiện (bỏ tích là khóa)':'🔓 Check to edit Detection settings (uncheck to lock)',
+  'Chỉ báo khi là NGƯỜI':'Alert only when a PERSON is detected', 'Độ tin cậy nhận diện người: từ':'Person detection confidence: at least', '% trở lên mới báo':'% to alert',
+  'Độ nhạy chuyển động:':'Motion sensitivity:', '% pixel thay đổi (càng nhỏ càng nhạy)':'% changed pixels (lower is more sensitive)',
+  'Thời gian chờ giữa 2 lần báo:':'Alert cooldown:', 'giây':'seconds',
+  '🔔 Âm thanh & cảnh báo':'🔔 Sound & Alerts', '🔓 Tích để chỉnh phần Âm thanh & cảnh báo (bỏ tích là khóa)':'🔓 Check to edit Sound & Alerts (uncheck to lock)',
+  '🔊 Âm thanh: BẬT':'🔊 Sound: ON', '🔇 Âm thanh: TẮT':'🔇 Sound: OFF', 'Âm lượng:':'Volume:', 'Kiểu âm báo':'Alert sound',
+  'Giọng nói: "Kính chào quý khách"':'Voice: “Welcome” (Vietnamese)', 'Còi báo trộm xâm nhập':'Intruder alarm siren',
+  'Chuông cổng':'Doorbell', 'Chuông nhắc nhở':'Reminder chime', 'Chuông tin nhắn ting ting':'Message chime', '🔊 Thử âm báo':'🔊 Test alert sound',
+  'Không phát được giọng nói trên máy này, app dùng chuông thay.':'Speech is unavailable on this device; a chime will be used instead.',
+  'Rung khi phát hiện':'Vibrate on detection', 'Thông báo trình duyệt':'Browser notifications',
+  'Ảnh chụp khi phát hiện':'Snapshots on detection', '🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)':'🔓 Check to edit Snapshots (uncheck to lock)',
+  'Số ảnh giữ lại:':'Snapshots to keep:', '(ảnh cũ nhất bị đè khi vượt)':'(oldest are removed when the limit is exceeded)',
+  '⚙ Khác':'⚙ Other', 'Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.':'Tip: plug in the device, keep it steady, and keep the screen on. This page requires HTTPS. Settings and monitoring zones are saved on this device.',
+  '♻ Đặt lại toàn bộ cài đặt':'♻ Reset all settings', 'Xóa mọi cài đặt và vùng giám sát đã lưu rồi tải lại trang. Ảnh chụp đang hiện trên trang cũng mất.':'Deletes saved settings and monitoring zones, then reloads the page. Visible snapshots will also be lost.',
+  'Đang giám sát':'Monitoring', 'Chạm vào màn hình để thoát':'Tap the screen to exit', 'Giảm':'Decrease', 'Tăng':'Increase',
+  'Giao diện sáng hoặc tối':'Light or dark theme', 'Chế độ tiết kiệm pin':'Battery saver', 'Bật/tắt âm thanh':'Toggle sound',
+  '⚠ Có chuyển động':'⚠ Motion detected', 'Có chuyển động':'Motion detected', 'Có người nhưng nằm ngoài vùng giám sát':'Person detected outside the monitoring zone',
+  'Có chuyển động, không phải người':'Motion detected, but no person', 'Đã dừng':'Stopped', 'Đang giám sát...':'Monitoring...',
+  'Đang tải mô hình AI... (cần mạng)':'Loading AI model... (internet required)', 'Đã sẵn sàng. Bấm Bật camera':'Ready. Tap Start Camera',
+  'Hãy bật camera trước khi vẽ vùng':'Turn on the camera before drawing a zone', 'Báo lần cuối:':'Last alert:',
+  'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.':'Could not load app.js. Check that the file was uploaded with the correct name.'
+};
+Object.assign(UI_EN, {
+  'Chưa tải được thư viện AI. Hãy bật mạng rồi bấm Tải lại, hoặc bỏ tick "Chỉ báo khi là NGƯỜI" để dùng chế độ chuyển động.':'Could not load the AI library. Connect to the internet and reload, or uncheck "Alert only when a PERSON is detected" to use motion detection.',
+  'Chưa tải được mô hình AI. Kiểm tra mạng, app sẽ tự thử lại khi có mạng.':'Could not load the AI model. Check your connection; the app will retry when online.',
+  'Xóa toàn bộ cài đặt và vùng giám sát đã lưu?':'Delete all saved settings and monitoring zones?',
+  'Tải lại trang sẽ xóa các ảnh chụp đang hiển thị. Tiếp tục?':'Reloading will clear the snapshots currently shown. Continue?',
+  'Thiếu file sounds.js nên không có âm báo. Hãy upload đủ 3 file.':'sounds.js is missing, so alerts have no sound. Upload all three files.',
+  'Rung (thiết bị/trình duyệt này không hỗ trợ, iPhone không có)':'Vibration (not supported by this device/browser; unavailable on iPhone)',
+  'CANH':'MONITOR', 'BỎ QUA':'IGNORE'
+});
+const UI_VI = Object.fromEntries(Object.entries(UI_EN).map(([vi, en]) => [en, vi]));
+function translateText(value) {
+  if (typeof value !== 'string') return value;
+  const dict = language === 'en' ? UI_EN : UI_VI;
+  if (dict[value]) return dict[value];
+  const patterns = language === 'en' ? [
+    [/^Yên tĩnh \((.*)\)$/, 'Quiet ($1)'], [/^Thấy người (\d+)% \(dưới ngưỡng (\d+)%\)$/, 'Person detected at $1% (below the $2% threshold)'],
+    [/^Phát hiện NGƯỜI \((\d+)%\)$/, 'PERSON detected ($1%)'], [/^⚠ Phát hiện NGƯỜI \((\d+)%\)$/, '⚠ PERSON detected ($1%)'],
+    [/^Lỗi nhận diện: (.*)$/, 'Detection error: $1'], [/^Lỗi chụp ảnh: (.*)$/, 'Snapshot error: $1'],
+    [/^Không mở được camera: (.*)$/, 'Could not open camera: $1'], [/^Lỗi: (.*) \(dòng (\d+)\)$/, 'Error: $1 (line $2)'],
+    [/^Lỗi: (.*)$/, 'Error: $1'], [/^Camera (\d+)$/, 'Camera $1'], [/^Báo lần cuối: (.*)$/, 'Last alert: $1']
+  ] : [
+    [/^Quiet \((.*)\)$/, 'Yên tĩnh ($1)'], [/^Person detected at (\d+)% \(below the (\d+)% threshold\)$/, 'Thấy người $1% (dưới ngưỡng $2%)'],
+    [/^PERSON detected \((\d+)%\)$/, 'Phát hiện NGƯỜI ($1%)'], [/^⚠ PERSON detected \((\d+)%\)$/, '⚠ Phát hiện NGƯỜI ($1%)'],
+    [/^Detection error: (.*)$/, 'Lỗi nhận diện: $1'], [/^Snapshot error: (.*)$/, 'Lỗi chụp ảnh: $1'],
+    [/^Could not open camera: (.*)$/, 'Không mở được camera: $1'], [/^Error: (.*) \(line (\d+)\)$/, 'Lỗi: $1 (dòng $2)'],
+    [/^Error: (.*)$/, 'Lỗi: $1'], [/^Camera (\d+)$/, 'Camera $1'], [/^Last alert: (.*)$/, 'Báo lần cuối: $1']
+  ];
+  for (const [pattern, replacement] of patterns) if (pattern.test(value)) return value.replace(pattern, replacement);
+  return value;
+}
+let lastStatusText = 'Chưa bật';
+function applyLanguage() {
+  document.documentElement.lang = language;
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  let node;
+  while ((node = walker.nextNode())) {
+    const raw = node.nodeValue, core = raw.trim();
+    if (core) node.nodeValue = raw.slice(0, raw.indexOf(core)) + translateText(core) + raw.slice(raw.indexOf(core) + core.length);
+  }
+  for (const el of document.querySelectorAll('[aria-label], [title], [placeholder]')) {
+    for (const attr of ['aria-label', 'title', 'placeholder']) if (el.hasAttribute(attr)) el.setAttribute(attr, translateText(el.getAttribute(attr)));
+  }
+  document.title = translateText(document.title);
+  const b = document.getElementById('btnLang');
+  if (b) { b.textContent = language === 'vi' ? 'EN' : 'VI'; b.setAttribute('aria-label', language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'); }
+  if (typeof statusEl !== 'undefined' && statusEl) { statusEl.textContent = translateText(lastStatusText); $('stext').textContent = translateText(lastStatusText); }
+  if ($('slast')) $('slast').textContent = translateText($('slast').textContent);
+  if (typeof updateStartButton === 'function') updateStartButton();
+  if (typeof setMute === 'function') setMute(muted);
+  if (typeof setEco === 'function') setEco(eco);
+}
 // Hiện lỗi JavaScript (nếu có) ngay trên khung trạng thái để dễ biết nguyên nhân trên từng máy
 window.addEventListener('error', e => {
   const s = document.getElementById('status');
-  if (s) { s.textContent = 'Lỗi: ' + e.message + ' (dòng ' + e.lineno + ')'; s.style.color = '#ff4d4d'; }
+  if (s) { s.textContent = translateText('Lỗi: ' + e.message + ' (dòng ' + e.lineno + ')'); s.style.color = '#ff4d4d'; }
 });
 window.addEventListener('unhandledrejection', e => {
   const s = document.getElementById('status');
-  if (s) { s.textContent = 'Lỗi: ' + ((e.reason && e.reason.message) || e.reason); s.style.color = '#ff4d4d'; }
+  if (s) { s.textContent = translateText('Lỗi: ' + ((e.reason && e.reason.message) || e.reason)); s.style.color = '#ff4d4d'; }
 });
 const $ = id => document.getElementById(id);
 const video = $('video'), box = $('box'), statusEl = $('status'), stage = $('stage');
@@ -24,10 +110,11 @@ $('conf').oninput = e => $('vConf').textContent = e.target.value;
 let lastStatusKey = '';
 function setStatus(t, color) {
   const key = t + '|' + color;
-  if (key === lastStatusKey) return;           // không đổi thì khỏi ghi lại DOM 4 lần/giây
-  lastStatusKey = key;
-  statusEl.textContent = t; statusEl.style.color = color || '#fff';
-  $('stext').textContent = t;
+  if (key === lastStatusKey) return;
+  lastStatusKey = key; lastStatusText = t;
+  const shown = translateText(t);
+  statusEl.textContent = shown; statusEl.style.color = color || '#fff';
+  $('stext').textContent = shown;
   $('sdot').style.background = (color === '#ff4d4d') ? '#ff4d4d' : '#1d5c35';
 }
 
@@ -38,7 +125,7 @@ function updateStartButton() {
   const need = $('chkPerson').checked && !model;
   const b = $('btnStart');
   b.disabled = need;
-  b.textContent = need ? (loadingModel ? '⏳ Đang tải AI...' : '⚠ Chưa có AI') : '▶ Bật camera';
+  b.textContent = translateText(need ? (loadingModel ? '⏳ Đang tải AI...' : '⚠ Chưa có AI') : '▶ Bật camera');
 }
 
 async function loadModel() {
@@ -202,7 +289,7 @@ function trigger(msg, bbox) {
   try { if ($('chkVibe').checked && navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {}
   try {
     if ($('chkNotify').checked && typeof Notification !== 'undefined' && Notification.permission === 'granted')
-      new Notification('Giám sát camera', { body: msg });
+      new Notification(translateText('Giám sát camera'), { body: translateText(msg) });
   } catch (e) {}
 }
 
@@ -223,7 +310,7 @@ function setMute(m) {
   const b = $('btnMute');
   b.classList.toggle('sw-on', !muted);
   b.setAttribute('aria-checked', String(!muted));
-  $('muteLabel').textContent = muted ? '🔇 Âm thanh: TẮT' : '🔊 Âm thanh: BẬT';
+  $('muteLabel').textContent = translateText(muted ? '🔇 Âm thanh: TẮT' : '🔊 Âm thanh: BẬT');
   $('vol').disabled = muted;
   $('vol').style.opacity = muted ? '0.3' : '';
   $('volLabel').style.opacity = muted ? '0.3' : '';
@@ -329,7 +416,7 @@ function snapshot(msg) {
   const fig = document.createElement('figure');
   const img = new Image(); img.src = c.toDataURL('image/jpeg', 0.7);
   const cap = document.createElement('figcaption');
-  cap.textContent = new Date().toLocaleTimeString('vi-VN') + ' - ' + msg;
+  cap.textContent = new Date().toLocaleTimeString(language === 'en' ? 'en-US' : 'vi-VN') + ' - ' + translateText(msg);
   fig.append(img, cap);
   $('log').prepend(fig);
   trimShots(); // giữ đúng số ảnh mới nhất theo thanh kéo
@@ -448,7 +535,7 @@ function redrawZones() {
     ctx.fillStyle = 'rgba(' + col + ',.22)'; ctx.strokeStyle = 'rgb(' + col + ')';
     ctx.fillRect(x, y, zw, zh); ctx.strokeRect(x, y, zw, zh);
     ctx.fillStyle = 'rgb(' + col + ')';
-    ctx.fillText(z.t === 'in' ? 'CANH' : 'BỎ QUA', x + 6, y + 16);
+    ctx.fillText(translateText(z.t === 'in' ? 'CANH' : 'BỎ QUA'), x + 6, y + 16);
   });
 }
 
@@ -511,7 +598,7 @@ function saveSettings() {
     s.chkNotify = $('chkNotify').checked && typeof Notification !== 'undefined' && Notification.permission === 'granted';
     s.muted = muted; s.facing = facing; s.deviceId = deviceId; s.zones = zones;
     s.light = document.documentElement.classList.contains('light');
-    s.eco = eco;
+    s.eco = eco; s.language = language;
     localStorage.setItem(SAVE_KEY, JSON.stringify(s));
   } catch (e) {}
 }
@@ -520,6 +607,7 @@ function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (!s) return;
+    if (s.language === 'en' || s.language === 'vi') language = s.language;
     SAVE_VALUES.forEach(id => { if (s[id] !== undefined) $(id).value = s[id]; });
     if (!$('sndStyle').value) $('sndStyle').selectedIndex = 0;
     SAVE_CHECKS.forEach(id => {
@@ -544,13 +632,13 @@ function loadSettings() {
 document.addEventListener('change', saveSettings);
 document.addEventListener('input', saveSettings);
 $('btnReset').onclick = () => {
-  if (!confirm('Xóa toàn bộ cài đặt và vùng giám sát đã lưu?')) return;
+  if (!confirm(translateText('Xóa toàn bộ cài đặt và vùng giám sát đã lưu?'))) return;
   try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
   location.reload();
 };
 
 $('btnReload').onclick = () => {
-  if ($('log').children.length && !confirm('Tải lại trang sẽ xóa các ảnh chụp đang hiển thị. Tiếp tục?')) return;
+  if ($('log').children.length && !confirm(translateText('Tải lại trang sẽ xóa các ảnh chụp đang hiển thị. Tiếp tục?'))) return;
   location.reload();
 };
 
@@ -559,7 +647,7 @@ function setEco(on) {
   eco = on;
   $('btnEco').classList.toggle('sw-on', eco);
   $('btnEco').setAttribute('aria-checked', String(eco));
-  $('ecoLabel').textContent = eco ? '🔋 Tiết kiệm pin: BẬT' : '🔋 Tiết kiệm pin: TẮT';
+  $('ecoLabel').textContent = translateText(eco ? '🔋 Tiết kiệm pin: BẬT' : '🔋 Tiết kiệm pin: TẮT');
 }
 $('btnEco').onclick = () => {
   setEco(!eco);
@@ -683,6 +771,12 @@ function applyShotsLock() { applyInertLock('shotsCard', 'chkEditShots'); }
 $('chkEditSound').addEventListener('change', applySoundLock);
 $('chkEditShots').addEventListener('change', applyShotsLock);
 
+function setLanguage(next, persist = true) {
+  language = next === 'en' ? 'en' : 'vi';
+  applyLanguage();
+  if (persist) saveSettings();
+}
+$('btnLang').onclick = () => setLanguage(language === 'vi' ? 'en' : 'vi');
 loadSettings();
 syncRanges();
 applyDetectLock();
@@ -695,6 +789,7 @@ updateVoiceHint();
 $('chkPerson').addEventListener('change', () => {
   if ($('chkPerson').checked && !model) loadModel(); else updateStartButton();
 });
+applyLanguage();
 window.addEventListener('online', () => { if ($('chkPerson').checked && !model && window.cocoSsd) loadModel(); });
 updateStartButton();
 if ($('chkPerson').checked) loadModel();

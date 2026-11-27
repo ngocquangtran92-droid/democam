@@ -27,6 +27,7 @@
   #zc { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   button.on { outline:3px solid var(--fg); }
   button:disabled { opacity:.5; }
+  button.lang { background:#555; font-size:13px; padding:8px 10px; margin:0; }
   :root { color-scheme: dark; }
   :root.light { --bg:#f2f3f5; --fg:#1b1b1b; --card:#ffffff; color-scheme: light; }
   select { background:var(--bg); color:var(--fg); border:1px solid #888; }
@@ -63,6 +64,7 @@
 <div class="row" style="justify-content:space-between">
   <h1>📷 Giám sát phát hiện người</h1>
   <div class="row" style="gap:6px;flex:none">
+    <button id="btnLang" class="lang" type="button" aria-label="Switch to English">EN</button>
     <span>🌙</span>
     <button id="btnTheme" class="sw sw-theme" role="switch" aria-checked="false" aria-label="Giao diện sáng hoặc tối"><i></i></button>
     <span>☀️</span>
@@ -180,7 +182,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=54"></script>
+<script src="app.js?v=55"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>
