@@ -152,6 +152,14 @@
   <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
 </div>
 
+<div class="card" id="shotsCard">
+  <b>Ảnh chụp khi phát hiện</b>
+  <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
+  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
+  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
+  <div id="log" class="keep"></div>
+</div>
+
 <div class="card">
   <b>⚙ Khác</b>
   <small style="display:block;margin-top:6px">Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.</small>
@@ -159,14 +167,6 @@
     <button id="btnReset" style="background:#b33;margin:0">♻ Đặt lại toàn bộ cài đặt</button>
     <small style="display:block;margin-top:6px">Xóa mọi cài đặt và vùng giám sát đã lưu rồi tải lại trang. Ảnh chụp đang hiện trên trang cũng mất.</small>
   </div>
-</div>
-
-<div class="card" id="shotsCard">
-  <b>Ảnh chụp khi phát hiện</b>
-  <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
-  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
-  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
-  <div id="log" class="keep"></div>
 </div>
 
 <div id="saver">
