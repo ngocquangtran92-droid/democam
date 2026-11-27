@@ -251,6 +251,19 @@ function loadSound(key) {
   return sndPromise[key];
 }
 
+async function testNativeAudio() {
+  if (muted) return;
+  const encoded = SOUNDS[$('sndStyle').value];
+  if (!encoded) { setStatus('Không tìm thấy file MP3 cho kiểu âm báo này.', '#ffb84d'); return; }
+  try {
+    if (nativeAudioProbe) nativeAudioProbe.pause();
+    nativeAudioProbe = new Audio();
+    nativeAudioProbe.src = 'data:audio/mpeg;base64,' + encoded;
+    nativeAudioProbe.volume = 1;
+    await nativeAudioProbe.play();
+  } catch (e) { setStatus('Lỗi phát MP3 trực tiếp: ' + (e && e.message || e), '#ffb84d'); }
+}
+let nativeAudioProbe = null;
 async function playSound(key, v, bypassCompressor = false, throughMediaStream = false) {
   const buf = await loadSound(key);
   if (!buf || !audioCtx) return false;
@@ -333,6 +346,7 @@ $('vol').oninput = e => $('vVol').textContent = e.target.value;
 $('btnTest').onclick = beep;
 $('btnTestNoComp').onclick = () => beep(true);
 $('btnTestMediaStream').onclick = () => beep(false, true);
+$('btnTestNativeAudio').onclick = testNativeAudio;
 $('btnMute').onclick = () => { setMute(!muted); saveSettings(); };
 $('muteLabel').onclick = () => $('btnMute').click();
 

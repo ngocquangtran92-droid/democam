@@ -149,6 +149,8 @@
     <small style="display:block;margin-top:6px">Dùng để so sánh âm lượng trên iPhone; nút này chỉ thử, không đổi âm báo giám sát.</small>
     <button id="btnTestMediaStream" style="background:#317873;margin:8px 0 0;width:100%">🔊 Thử qua MediaStream</button>
     <small style="display:block;margin-top:6px">Thử đường phát khác trên iPhone; chỉ dùng để chẩn đoán.</small>
+    <button id="btnTestNativeAudio" style="background:#a66b21;margin:8px 0 0;width:100%">🔊 Thử MP3 trực tiếp (không Web Audio)</button>
+    <small style="display:block;margin-top:6px">Đặt âm lượng trang ở 100% trước khi so sánh.</small>
     <small id="voiceHint" style="display:none;margin-top:8px">Không phát được giọng nói trên máy này, app dùng chuông thay.</small>
   </div>
 
@@ -184,7 +186,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=50"></script>
+<script src="app.js?v=51"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>
