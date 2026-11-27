@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Giám sát camera</title>
+<title>Giám sát camera phát hiện người</title>
 <style>
   :root { --bg:#111; --fg:#eee; --card:#1e1e1e; --acc:#2d9cff; --bad:#ff4d4d; --ok:#35c46a; }
   * { box-sizing:border-box; }
@@ -80,7 +80,7 @@
 </head>
 <body>
 <header class="app-header">
-  <h1>📷 Giám sát phát hiện người</h1>
+  <h1>📷 Giám sát camera phát hiện người</h1>
 </header>
 
 <div id="quickControls" aria-label="Cài đặt nhanh">
@@ -218,11 +218,9 @@
   <div id="shint">Chạm vào màn hình để thoát</div>
 </div>
 
-<!-- Thư viện AI (chỉ tải khi mở trang). Nếu không có mạng, vẫn dùng được chế độ phát hiện chuyển động. -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+<!-- Thư viện AI được tải nền khi bắt đầu nhận diện người để trang mở nhanh hơn. -->
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=58"></script>
+<script src="app.js?v=60"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>

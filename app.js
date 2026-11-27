@@ -1,6 +1,6 @@
 let language = 'vi';
 const UI_EN = {
-  'Giám sát camera':'Camera Monitor', '📷 Giám sát phát hiện người':'📷 Person Detection Monitor', 'Chưa bật':'Not started',
+  'Giám sát camera phát hiện người':'Camera Monitor – Person Detection', '📷 Giám sát camera phát hiện người':'📷 Camera Monitor – Person Detection', 'Chưa bật':'Not started',
   '▶ Bật camera':'▶ Start Camera', '▶ Bật camera (chỉ chuyển động)':'▶ Start camera (motion only)', '⏳ Đang tải AI...':'⏳ Loading AI...', '⚠ Chưa có AI':'⚠ AI unavailable', '■ Dừng':'■ Stop',
   '🔄 Trước/Sau':'🔄 Front/Back', '🌑 Màn hình đen':'🌑 Black Screen', '🔄 Tải lại':'🔄 Reload',
   'Chọn camera cụ thể (sau thường, góc rộng, zoom...)':'Select a camera (main, ultra-wide, telephoto...)', 'Mặc định':'Default',
@@ -35,7 +35,7 @@ const UI_EN = {
 };
 Object.assign(UI_EN, {
   'Chưa tải được thư viện AI. Bạn vẫn có thể bấm nút chạy chế độ chỉ phát hiện chuyển động, hoặc kết nối mạng rồi thử lại.':'The AI library could not be loaded. You can still start in motion-only mode, or connect to the internet and try again.',
-  'Chưa tải được mô hình AI. Bạn vẫn có thể chạy chế độ chỉ phát hiện chuyển động; hãy bật lại "Chỉ báo khi là NGƯỜI" sau khi có mạng để thử AI.':'The AI model could not be loaded. You can still use motion-only mode; turn "Alert only when a PERSON is detected" back on after reconnecting to retry AI.',
+  'Chưa tải được AI. Bạn có thể bỏ tích "Chỉ báo khi là NGƯỜI" để dùng phát hiện chuyển động, hoặc kết nối mạng rồi bật lại để thử.':'AI could not be loaded. Uncheck "Alert only when a PERSON is detected" to use motion detection, or reconnect and turn it back on to retry.',
   'Đang giám sát chuyển động (AI chưa sẵn sàng)':'Monitoring motion only (AI unavailable)',
   'Xóa toàn bộ cài đặt và vùng giám sát đã lưu?':'Delete all saved settings and monitoring zones?',
   'Tải lại trang sẽ xóa các ảnh chụp đang hiển thị. Tiếp tục?':'Reloading will clear the snapshots currently shown. Continue?',
@@ -124,26 +124,46 @@ let modelError = '';
 
 // Nếu AI chưa sẵn sàng, cho phép người dùng chọn chạy chế độ chuyển động.
 function updateStartButton() {
-  const need = $('chkPerson').checked && !model;
+  const fallback = $('chkPerson').checked && !model && !!modelError;
   const b = $('btnStart');
   b.disabled = false;
-  b.textContent = translateText(need ? '▶ Bật camera (chỉ chuyển động)' : '▶ Bật camera');
+  b.textContent = translateText(fallback ? '▶ Bật camera (chỉ chuyển động)' : '▶ Bật camera');
+}
+
+let aiLibrariesPromise = null;
+function loadExternalScript(src) {
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = () => { script.remove(); reject(new Error('AI library download failed')); };
+    document.head.appendChild(script);
+  });
+}
+
+async function ensureAiLibraries() {
+  if (window.cocoSsd) return;
+  if (!aiLibrariesPromise) {
+    aiLibrariesPromise = (async () => {
+      if (!window.tf) await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+      if (!window.cocoSsd) await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js');
+    })().catch(e => { aiLibrariesPromise = null; throw e; });
+  }
+  return aiLibrariesPromise;
 }
 
 async function loadModel() {
-  if (model || loadingModel) return;
+  if (model || loadingModel || modelError) return;
   modelError = '';
-  if (!window.cocoSsd) {
-    modelError = 'Chưa tải được thư viện AI. Bạn vẫn có thể bấm nút chạy chế độ chỉ phát hiện chuyển động, hoặc kết nối mạng rồi thử lại.';
-    setStatus(modelError, '#ffb84d'); updateStartButton(); return;
-  }
   loadingModel = true; updateStartButton();
   setStatus('Đang tải mô hình AI... (cần mạng)', '#ffb84d');
   try {
-    model = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
-    if (!stream) setStatus('Đã sẵn sàng. Bấm Bật camera', '#35c46a');
+    await ensureAiLibraries();
+    model = await window.cocoSsd.load({ base: 'lite_mobilenet_v2' });
+    setStatus(stream ? 'Đang giám sát...' : 'Đã sẵn sàng. Bấm Bật camera', '#35c46a');
   } catch (e) {
-    modelError = 'Chưa tải được mô hình AI. Bạn vẫn có thể chạy chế độ chỉ phát hiện chuyển động; hãy bật lại "Chỉ báo khi là NGƯỜI" sau khi có mạng để thử AI.';
+    modelError = 'Chưa tải được AI. Bạn có thể bỏ tích "Chỉ báo khi là NGƯỜI" để dùng phát hiện chuyển động, hoặc kết nối mạng rồi bật lại để thử.';
     setStatus(modelError, '#ffb84d');
   }
   loadingModel = false; updateStartButton();
@@ -176,7 +196,7 @@ function resetCameraState() {
 }
 
 async function start() {
-  const motionOnlyFallback = $('chkPerson').checked && !model;
+  const motionOnlyFallback = $('chkPerson').checked && !model && !!modelError;
   resetCameraState();
   try {
     const vc = { width: { ideal: 1280 }, height: { ideal: 720 } };
@@ -205,7 +225,6 @@ async function start() {
     Object.keys(SOUNDS).forEach(k => loadSound(k).then(updateVoiceHint));
     await recoverAudioOutput();
     try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
-    if ($('chkPerson').checked && !motionOnlyFallback) await loadModel();
     if (motionOnlyFallback) {
       $('chkPerson').checked = false;
       saveSettings();
@@ -214,6 +233,7 @@ async function start() {
     $('btnStart').style.display = 'none'; $('btnStop').style.display = '';
     setStatus(motionOnlyFallback ? 'Đang giám sát chuyển động (AI chưa sẵn sàng)' : 'Đang giám sát...', motionOnlyFallback ? '#ffb84d' : '#35c46a');
     timer = setInterval(tick, eco ? 500 : 250);   // tiết kiệm pin: kiểm tra 2 lần/giây thay vì 4
+    if ($('chkPerson').checked && !model) setTimeout(() => { if (stream && $('chkPerson').checked) loadModel(); }, 100);
   } catch (e) {
     resetCameraState();
     const message = e && e.message ? e.message : String(e);
@@ -808,11 +828,10 @@ trimShots();
 updateVoiceHint();
 
 $('chkPerson').addEventListener('change', () => {
-  if ($('chkPerson').checked && !model) loadModel(); else updateStartButton();
+  if ($('chkPerson').checked && !model) { modelError = ''; loadModel(); } else updateStartButton();
 });
 applyLanguage();
-window.addEventListener('online', () => { if ($('chkPerson').checked && !model && window.cocoSsd) loadModel(); });
+window.addEventListener('online', () => { if ($('chkPerson').checked && !model) { modelError = ''; loadModel(); } });
 updateStartButton();
-if ($('chkPerson').checked) loadModel();
 
 if (!window.APP_SOUNDS) setStatus('Thiếu file sounds.js nên không có âm báo. Hãy upload đủ 3 file.', '#ffb84d');
