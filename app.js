@@ -1,7 +1,10 @@
 let language = 'vi';
 const UI_EN = {
   'Giám sát camera phát hiện người':'Camera Monitor – Person Detection', '📷 Giám sát camera phát hiện người':'📷 Camera Monitor – Person Detection', 'Chưa bật':'Not started',
-  '▶ Bật camera':'▶ Start Camera', '▶ Bật camera (chỉ chuyển động)':'▶ Start camera (motion only)', '⏳ Đang tải AI...':'⏳ Loading AI...', '⚠ Chưa có AI':'⚠ AI unavailable', '■ Dừng':'■ Stop',
+  '▶ Bật camera':'▶ Start Camera', '▶ Bật camera (chỉ chuyển động)':'▶ Start camera (motion only)', '⏳ Đang tải AI...':'⏳ Loading AI...', 'Đang tải AI...':'Loading AI...', '⚠ Chưa có AI':'⚠ AI unavailable', '■ Dừng':'■ Stop',
+  'Mô hình AI đang tải lần đầu. Thời gian phụ thuộc vào mạng.':'The AI model is loading for the first time. Time depends on your connection.',
+  'Tiếp tục không dùng AI':'Continue without AI',
+  'Đã chọn chế độ phát hiện chuyển động.':'Motion-detection mode selected.',
   '🔄 Trước/Sau':'🔄 Front/Back', '🌑 Màn hình đen':'🌑 Black Screen', '🔄 Tải lại':'🔄 Reload',
   'Chọn camera cụ thể (sau thường, góc rộng, zoom...)':'Select a camera (main, ultra-wide, telephoto...)', 'Mặc định':'Default',
   'Lật ngang hình (tự bật với camera trước)':'Mirror image (automatic for front camera)',
@@ -126,10 +129,18 @@ let modelError = '';
 
 // Nếu AI chưa sẵn sàng, cho phép người dùng chọn chạy chế độ chuyển động.
 function updateStartButton() {
-  const fallback = $('chkPerson').checked && !model && !!modelError;
+  const needsAi = $('chkPerson').checked && !model;
+  const fallback = needsAi && !!modelError;
   const b = $('btnStart');
-  b.disabled = false;
-  b.textContent = translateText(fallback ? '▶ Bật camera (chỉ chuyển động)' : '▶ Bật camera');
+  b.disabled = needsAi && !fallback;
+  b.textContent = translateText(fallback ? '▶ Bật camera (chỉ chuyển động)' : needsAi ? '⏳ Đang tải AI...' : '▶ Bật camera');
+}
+
+function setAiLoadingScreen(show) {
+  const screen = $('aiLoading');
+  if (!screen) return;
+  screen.classList.toggle('show', show);
+  screen.setAttribute('aria-hidden', String(!show));
 }
 
 let aiLibrariesPromise = null;
@@ -158,17 +169,20 @@ async function ensureAiLibraries() {
 async function loadModel() {
   if (model || loadingModel || modelError) return;
   modelError = '';
-  loadingModel = true; updateStartButton();
+  loadingModel = true; updateStartButton(); setAiLoadingScreen(true);
   setStatus('Đang tải mô hình AI... (cần mạng)', '#ffb84d');
   try {
     await ensureAiLibraries();
     model = await window.cocoSsd.load({ base: 'lite_mobilenet_v2' });
-    setStatus(stream ? 'Đang giám sát...' : 'Đã sẵn sàng. Bấm Bật camera', '#35c46a');
+    if ($('chkPerson').checked) setStatus(stream ? 'Đang giám sát...' : 'Đã sẵn sàng. Bấm Bật camera', '#35c46a');
   } catch (e) {
     modelError = 'Chưa tải được AI. Bạn có thể bỏ tích "Chỉ báo khi là NGƯỜI" để dùng phát hiện chuyển động, hoặc kết nối mạng rồi bật lại để thử.';
-    setStatus(modelError, '#ffb84d');
+    if ($('chkPerson').checked) setStatus(modelError, '#ffb84d');
+  } finally {
+    loadingModel = false;
+    setAiLoadingScreen(false);
+    updateStartButton();
   }
-  loadingModel = false; updateStartButton();
 }
 
 function updateAudioDiagnostics() {
@@ -888,5 +902,13 @@ $('chkPerson').addEventListener('change', () => {
 applyLanguage();
 window.addEventListener('online', () => { if ($('chkPerson').checked && !model) { modelError = ''; loadModel(); } });
 updateStartButton();
+if ($('chkPerson').checked) setTimeout(() => loadModel(), 120);
+$('btnSkipAiLoad').onclick = () => {
+  $('chkPerson').checked = false;
+  saveSettings();
+  setAiLoadingScreen(false);
+  updateStartButton();
+  setStatus('Đã chọn chế độ phát hiện chuyển động.', '#ffb84d');
+};
 
 if (!window.APP_SOUNDS) setStatus('Thiếu file sounds.js nên không có âm báo. Hãy upload đủ 3 file.', '#ffb84d');
