@@ -315,6 +315,7 @@ function unlockSpeech() {
 }
 
 $('vol').oninput = e => $('vVol').textContent = e.target.value;
+$('btnTest').onclick = beep;
 $('btnMute').onclick = () => { setMute(!muted); saveSettings(); };
 $('muteLabel').onclick = () => $('btnMute').click();
 
