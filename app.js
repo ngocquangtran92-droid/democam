@@ -89,6 +89,8 @@ async function start() {
   redrawZones();
   audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   unlockSpeech();
+  // Safari iOS có thể đổi route âm thanh sau khi bật camera; khôi phục phiên phát nếu API hỗ trợ.
+  try { if (navigator.audioSession && 'type' in navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
   Object.keys(SOUNDS).forEach(k => loadSound(k).then(updateVoiceHint));
   if (audioCtx.state === 'suspended') audioCtx.resume();
   try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
