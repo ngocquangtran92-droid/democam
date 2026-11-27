@@ -229,14 +229,13 @@ function setMute(m) {
   $('volLabel').style.opacity = muted ? '0.3' : '';
 }
 
-async function beep(bypassCompressor = false, throughMediaStream = false) {
+async function beep() {
   if (muted) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   const v = Number($('vol').value) / 100;
   const style = $('sndStyle').value;
-  if (await playSound(style, v, bypassCompressor, throughMediaStream)) return;
-  if (throughMediaStream) { setStatus('Không phát được qua MediaStream trên trình duyệt này.', '#ffb84d'); return; }
+  if (await playSound(style, v)) return;
   // Dự phòng khi không giải mã được file
   if (style === 'welcome') speak(v); else { tone(784, 0, 1.2, 'sine', 0.35 * v); tone(988, 0.35, 1.4, 'sine', 0.35 * v); }
 }
@@ -245,7 +244,6 @@ async function beep(bypassCompressor = false, throughMediaStream = false) {
    và chạy giống nhau trên mọi máy, kể cả khi mất mạng. */
 const SOUNDS = window.APP_SOUNDS || {};   // lấy từ file sounds.js
 const sndBuf = {}, sndPromise = {};   // khóa -> AudioBuffer đã giải mã
-let mediaStreamAudio = null;
 
 function loadSound(key) {
   if (!SOUNDS[key] || !audioCtx) return Promise.resolve(null);
@@ -260,51 +258,16 @@ function loadSound(key) {
   return sndPromise[key];
 }
 
-async function testNativeAudio() {
-  if (muted) return;
-  const encoded = SOUNDS[$('sndStyle').value];
-  if (!encoded) { setStatus('Không tìm thấy file MP3 cho kiểu âm báo này.', '#ffb84d'); return; }
-  try {
-    if (nativeAudioProbe) nativeAudioProbe.pause();
-    nativeAudioProbe = new Audio();
-    nativeAudioProbe.src = 'data:audio/mpeg;base64,' + encoded;
-    nativeAudioProbe.volume = 1;
-    await nativeAudioProbe.play();
-  } catch (e) { setStatus('Lỗi phát MP3 trực tiếp: ' + (e && e.message || e), '#ffb84d'); }
-}
-let nativeAudioProbe = null;
-async function playSound(key, v, bypassCompressor = false, throughMediaStream = false) {
+async function playSound(key, v) {
   const buf = await loadSound(key);
   if (!buf || !audioCtx) return false;
   if (audioCtx.state === 'suspended') await audioCtx.resume();
-  const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
+  const src = audioCtx.createBufferSource(), g = audioCtx.createGain(), comp = audioCtx.createDynamicsCompressor();
+  // Khuếch đại lên tới 2.8x + compressor để bù suy giảm âm lượng trên iPhone khi mở camera mà không bị vỡ tiếng
   src.buffer = buf; g.gain.value = v * 2.8;
-  src.connect(g);
-  let output = g;
-  if (!bypassCompressor) {
-    const comp = audioCtx.createDynamicsCompressor();
-    comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 8;
-    comp.attack.value = 0.003; comp.release.value = 0.15;
-    g.connect(comp); output = comp;
-  }
-  if (throughMediaStream) {
-    const dest = audioCtx.createMediaStreamDestination();
-    output.connect(dest);
-    if (!mediaStreamAudio) {
-      mediaStreamAudio = document.createElement('audio');
-      mediaStreamAudio.playsInline = true; mediaStreamAudio.autoplay = true;
-      mediaStreamAudio.style.display = 'none';
-      document.body.appendChild(mediaStreamAudio);
-    }
-    mediaStreamAudio.srcObject = dest.stream;
-    try { await mediaStreamAudio.play(); }
-    catch (e) { dest.stream.getTracks().forEach(t => t.stop()); mediaStreamAudio.srcObject = null; return false; }
-    src.onended = () => {
-      dest.stream.getTracks().forEach(t => t.stop());
-      if (mediaStreamAudio.srcObject === dest.stream) { mediaStreamAudio.pause(); mediaStreamAudio.srcObject = null; }
-    };
-  } else output.connect(audioCtx.destination);
-  src.start();
+  comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 8;
+  comp.attack.value = 0.003; comp.release.value = 0.15;
+  src.connect(g); g.connect(comp); comp.connect(audioCtx.destination); src.start();
   return true;
 }
 let viVoice = null;
@@ -352,10 +315,6 @@ function unlockSpeech() {
 }
 
 $('vol').oninput = e => $('vVol').textContent = e.target.value;
-$('btnTest').onclick = beep;
-$('btnTestNoComp').onclick = () => beep(true);
-$('btnTestMediaStream').onclick = () => beep(false, true);
-$('btnTestNativeAudio').onclick = testNativeAudio;
 $('btnMute').onclick = () => { setMute(!muted); saveSettings(); };
 $('muteLabel').onclick = () => $('btnMute').click();
 
