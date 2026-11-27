@@ -27,9 +27,11 @@
   #zc { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   button.on { outline:3px solid var(--fg); }
   button:disabled { opacity:.5; }
-  .lang-pair { display:flex; gap:3px; }
-  button.lang-flag { background:#555; font-size:18px; line-height:1.2; padding:7px 8px; margin:0; }
-  button.lang-flag.active { background:#333; outline:2px solid var(--acc); }
+  .lang-pair { display:flex; gap:5px; }
+  button.lang-flag { display:flex; align-items:center; gap:6px; background:#292e38; border:1px solid #ffffff30; border-radius:10px; color:#fff; font-size:12px; font-weight:700; letter-spacing:.04em; line-height:1; padding:7px 9px; margin:0; transition:background .18s, box-shadow .18s, transform .18s; }
+  button.lang-flag:active { transform:scale(.96); }
+  button.lang-flag.active { background:#1769aa; border-color:#62b5ff; box-shadow:0 0 0 2px #2d9cff40; }
+  .lang-icon { display:block; flex:none; }
   :root { color-scheme: dark; }
   :root.light { --bg:#f2f3f5; --fg:#1b1b1b; --card:#ffffff; color-scheme: light; }
   select { background:var(--bg); color:var(--fg); border:1px solid #888; }
@@ -67,8 +69,14 @@
   <h1>📷 Giám sát phát hiện người</h1>
   <div class="row" style="gap:6px;flex:none">
     <div class="lang-pair" role="group" aria-label="Chọn ngôn ngữ">
-      <button id="btnLangVi" class="lang-flag active" type="button" aria-label="Tiếng Việt" aria-pressed="true">🇻🇳</button>
-      <button id="btnLangEn" class="lang-flag" type="button" aria-label="English" aria-pressed="false">ENG</button>
+      <button id="btnLangVi" class="lang-flag active" type="button" aria-label="Tiếng Việt" aria-pressed="true">
+        <svg class="lang-icon" width="24" height="16" viewBox="0 0 24 16" aria-hidden="true"><rect width="24" height="16" rx="2" fill="#DA251D"/><path d="M12 2.4 14.1 7h5l-4 2.9 1.5 4.7-4.6-2.9-4.6 2.9 1.5-4.7-4-2.9h5z" fill="#FFDF00"/></svg>
+        <span>VIE</span>
+      </button>
+      <button id="btnLangEn" class="lang-flag" type="button" aria-label="English" aria-pressed="false">
+        <svg class="lang-icon" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="10" cy="10" r="8"/><path d="M2.5 10h15M10 2c2.2 2.1 3.2 4.8 3.2 8S12.2 15.9 10 18M10 2C7.8 4.1 6.8 6.8 6.8 10s1 5.9 3.2 8"/></svg>
+        <span>ENG</span>
+      </button>
     </div>
     <span>🌙</span>
     <button id="btnTheme" class="sw sw-theme" role="switch" aria-checked="false" aria-label="Giao diện sáng hoặc tối"><i></i></button>
