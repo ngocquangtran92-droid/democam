@@ -63,6 +63,7 @@
   .card:not(.locked) input[type=range]:disabled + .rs { opacity:.35; pointer-events:none; }
   /* Khung bị khóa: mờ hết và không chạm vào được, trừ tiêu đề và ô tích mở khóa */
   .card.locked > *:not(.keep):not(b):not(summary) { opacity:.35; pointer-events:none; }
+  .card.locked > #log { opacity:1; pointer-events:auto; }
   .sw.sw-theme.sw-on { background:#e0a800; }
   .sw { flex:none; width:64px; height:36px; border-radius:18px; border:0; padding:0; margin:0; background:#b33; position:relative; transition:background .2s; }
   .sw i { position:absolute; top:4px; left:4px; width:28px; height:28px; border-radius:50%; background:#fff; transition:transform .2s; }
@@ -203,11 +204,11 @@
 <div class="card" id="shotsCard">
   <b>Ảnh chụp khi phát hiện</b>
   <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
-  <div class="details-body">
+  <div class="shots-settings">
   <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
   <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
-  <div id="log" class="keep"></div>
   </div>
+  <div id="log" class="keep"></div>
 </div>
 
 <div id="saver">
