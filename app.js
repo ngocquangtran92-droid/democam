@@ -218,13 +218,13 @@ function setMute(m) {
   $('volLabel').style.opacity = muted ? '0.3' : '';
 }
 
-async function beep() {
+async function beep(bypassCompressor = false) {
   if (muted) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   const v = Number($('vol').value) / 100;
   const style = $('sndStyle').value;
-  if (await playSound(style, v)) return;
+  if (await playSound(style, v, bypassCompressor)) return;
   // Dự phòng khi không giải mã được file
   if (style === 'welcome') speak(v); else { tone(784, 0, 1.2, 'sine', 0.35 * v); tone(988, 0.35, 1.4, 'sine', 0.35 * v); }
 }
@@ -247,16 +247,22 @@ function loadSound(key) {
   return sndPromise[key];
 }
 
-async function playSound(key, v) {
+async function playSound(key, v, bypassCompressor = false) {
   const buf = await loadSound(key);
   if (!buf || !audioCtx) return false;
   if (audioCtx.state === 'suspended') await audioCtx.resume();
-  const src = audioCtx.createBufferSource(), g = audioCtx.createGain(), comp = audioCtx.createDynamicsCompressor();
-  // Khuếch đại lên tới 2.8x + compressor để bù suy giảm âm lượng trên iPhone khi mở camera mà không bị vỡ tiếng
+  const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
+  // Khuếch đại lên tới 2.8x; nút chẩn đoán có thể nối thẳng để so sánh khi bỏ bộ nén.
   src.buffer = buf; g.gain.value = v * 2.8;
-  comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 8;
-  comp.attack.value = 0.003; comp.release.value = 0.15;
-  src.connect(g); g.connect(comp); comp.connect(audioCtx.destination); src.start();
+  src.connect(g);
+  if (bypassCompressor) g.connect(audioCtx.destination);
+  else {
+    const comp = audioCtx.createDynamicsCompressor();
+    comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 8;
+    comp.attack.value = 0.003; comp.release.value = 0.15;
+    g.connect(comp); comp.connect(audioCtx.destination);
+  }
+  src.start();
   return true;
 }
 
@@ -306,6 +312,7 @@ function unlockSpeech() {
 
 $('vol').oninput = e => $('vVol').textContent = e.target.value;
 $('btnTest').onclick = beep;
+$('btnTestNoComp').onclick = () => beep(true);
 $('btnMute').onclick = () => { setMute(!muted); saveSettings(); };
 $('muteLabel').onclick = () => $('btnMute').click();
 
