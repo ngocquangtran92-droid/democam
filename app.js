@@ -221,7 +221,7 @@ function setMute(m) {
 async function beep() {
   if (muted) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
   const v = Number($('vol').value) / 100;
   const style = $('sndStyle').value;
   if (await playSound(style, v)) return;
@@ -250,10 +250,13 @@ function loadSound(key) {
 async function playSound(key, v) {
   const buf = await loadSound(key);
   if (!buf || !audioCtx) return false;
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  const src = audioCtx.createBufferSource(), g = audioCtx.createGain();
-  src.buffer = buf; g.gain.value = v;      // âm lượng chạy qua gain nên iPhone cũng chỉnh được
-  src.connect(g); g.connect(audioCtx.destination); src.start();
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  const src = audioCtx.createBufferSource(), g = audioCtx.createGain(), comp = audioCtx.createDynamicsCompressor();
+  // Khuếch đại lên tới 2.8x + compressor để bù suy giảm âm lượng trên iPhone khi mở camera mà không bị vỡ tiếng
+  src.buffer = buf; g.gain.value = v * 2.8;
+  comp.threshold.value = -12; comp.knee.value = 12; comp.ratio.value = 8;
+  comp.attack.value = 0.003; comp.release.value = 0.15;
+  src.connect(g); g.connect(comp); comp.connect(audioCtx.destination); src.start();
   return true;
 }
 
