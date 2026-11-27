@@ -40,7 +40,7 @@ Object.assign(UI_EN, {
   'Tải lại trang sẽ xóa các ảnh chụp đang hiển thị. Tiếp tục?':'Reloading will clear the snapshots currently shown. Continue?',
   'Thiếu file sounds.js nên không có âm báo. Hãy upload đủ 3 file.':'sounds.js is missing, so alerts have no sound. Upload all three files.',
   'Rung (thiết bị/trình duyệt này không hỗ trợ, iPhone không có)':'Vibration (not supported by this device/browser; unavailable on iPhone)',
-  'CANH':'MONITOR', 'BỎ QUA':'IGNORE'
+  'CANH':'MONITOR', 'BỎ QUA':'IGNORE', 'Chọn ngôn ngữ':'Choose language', 'Tiếng Việt':'Vietnamese'
 });
 const UI_VI = Object.fromEntries(Object.entries(UI_EN).map(([vi, en]) => [en, vi]));
 function translateText(value) {
@@ -76,8 +76,9 @@ function applyLanguage() {
     for (const attr of ['aria-label', 'title', 'placeholder']) if (el.hasAttribute(attr)) el.setAttribute(attr, translateText(el.getAttribute(attr)));
   }
   document.title = translateText(document.title);
-  const b = document.getElementById('btnLang');
-  if (b) { b.textContent = language === 'vi' ? 'EN' : 'VI'; b.setAttribute('aria-label', language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'); }
+  const viButton = document.getElementById('btnLangVi'), enButton = document.getElementById('btnLangEn');
+  if (viButton) { viButton.classList.toggle('active', language === 'vi'); viButton.setAttribute('aria-pressed', String(language === 'vi')); }
+  if (enButton) { enButton.classList.toggle('active', language === 'en'); enButton.setAttribute('aria-pressed', String(language === 'en')); }
   if (typeof statusEl !== 'undefined' && statusEl) { statusEl.textContent = translateText(lastStatusText); $('stext').textContent = translateText(lastStatusText); }
   if ($('slast')) $('slast').textContent = translateText($('slast').textContent);
   if (typeof updateStartButton === 'function') updateStartButton();
@@ -776,7 +777,8 @@ function setLanguage(next, persist = true) {
   applyLanguage();
   if (persist) saveSettings();
 }
-$('btnLang').onclick = () => setLanguage(language === 'vi' ? 'en' : 'vi');
+$('btnLangVi').onclick = () => setLanguage('vi');
+$('btnLangEn').onclick = () => setLanguage('en');
 loadSettings();
 syncRanges();
 applyDetectLock();
