@@ -163,6 +163,7 @@
 <details class="card" id="soundCard">
   <summary><b>🔔 Âm thanh &amp; cảnh báo</b></summary>
   <label class="row keep"><input type="checkbox" id="chkEditSound"> 🔓 Tích để chỉnh phần Âm thanh &amp; cảnh báo (bỏ tích là khóa)</label>
+  <small id="audioDiag" class="keep" style="display:block;margin:0 12px 10px">Trạng thái âm thanh: chưa tạo · — · audioSession: không hỗ trợ</small>
   <div class="details-body">
   <div class="row" style="justify-content:space-between;margin-top:10px">
     <span id="muteLabel" style="font-size:16px">🔊 Âm thanh: BẬT</span>
@@ -220,7 +221,7 @@
 
 <!-- Thư viện AI được tải nền khi bắt đầu nhận diện người để trang mở nhanh hơn. -->
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=60"></script>
+<script src="app.js?v=63"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>

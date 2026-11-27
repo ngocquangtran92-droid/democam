@@ -27,6 +27,7 @@ const UI_EN = {
   '♻ Đặt lại toàn bộ cài đặt':'♻ Reset all settings', 'Xóa mọi cài đặt và vùng giám sát đã lưu rồi tải lại trang. Ảnh chụp đang hiện trên trang cũng mất.':'Deletes saved settings and monitoring zones, then reloads the page. Visible snapshots will also be lost.',
   'Đang giám sát':'Monitoring', 'Chạm vào màn hình để thoát':'Tap the screen to exit', 'Giảm':'Decrease', 'Tăng':'Increase',
   'Giao diện sáng hoặc tối':'Light or dark theme', 'Chế độ tiết kiệm pin':'Battery saver', 'Bật/tắt âm thanh':'Toggle sound',
+  'Trạng thái âm thanh:':'Audio status:', 'chưa tạo':'not created', 'không hỗ trợ':'unsupported',
   '⚠ Có chuyển động':'⚠ Motion detected', 'Có chuyển động':'Motion detected', 'Có người nhưng nằm ngoài vùng giám sát':'Person detected outside the monitoring zone',
   'Có chuyển động, không phải người':'Motion detected, but no person', 'Đã dừng':'Stopped', 'Đang giám sát...':'Monitoring...',
   'Đang tải mô hình AI... (cần mạng)':'Loading AI model... (internet required)', 'Đã sẵn sàng. Bấm Bật camera':'Ready. Tap Start Camera',
@@ -83,6 +84,7 @@ function applyLanguage() {
   if (typeof statusEl !== 'undefined' && statusEl) { statusEl.textContent = translateText(lastStatusText); $('stext').textContent = translateText(lastStatusText); }
   if ($('slast')) $('slast').textContent = translateText($('slast').textContent);
   if (typeof updateStartButton === 'function') updateStartButton();
+  if (typeof updateAudioDiagnostics === 'function') updateAudioDiagnostics();
   if (typeof setMute === 'function') setMute(muted);
   if (typeof setEco === 'function') setEco(eco);
 }
@@ -169,14 +171,54 @@ async function loadModel() {
   loadingModel = false; updateStartButton();
 }
 
-async function recoverAudioOutput() {
-  // iOS Safari đôi khi hạ âm Web Audio sau khi bắt đầu capture; suspend/resume có thể khôi phục mức phát.
-  try { if (navigator.audioSession && 'type' in navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
-  if (!audioCtx) return;
+function updateAudioDiagnostics() {
+  const el = $('audioDiag');
+  if (!el) return;
+  let sessionType = 'không hỗ trợ';
+  try { if (navigator.audioSession && 'type' in navigator.audioSession) sessionType = navigator.audioSession.type || 'unknown'; } catch (e) {}
+  const state = audioCtx ? audioCtx.state : translateText('chưa tạo');
+  const sampleRate = audioCtx && audioCtx.sampleRate ? audioCtx.sampleRate + ' Hz' : '—';
+  el.textContent = translateText('Trạng thái âm thanh:') + ' ' + state + ' · ' + sampleRate + ' · audioSession: ' + translateText(sessionType);
+}
+
+function createAudioContextIfNeeded() {
+  if (audioCtx) return audioCtx;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) { updateAudioDiagnostics(); return null; }
   try {
-    if (audioCtx.state === 'suspended') await audioCtx.resume();
-    if (audioCtx.state === 'running') { await audioCtx.suspend(); await audioCtx.resume(); }
+    audioCtx = new AudioContextClass();
+    if (typeof audioCtx.addEventListener === 'function') audioCtx.addEventListener('statechange', updateAudioDiagnostics);
+    else audioCtx.onstatechange = updateAudioDiagnostics;
+  } catch (e) { audioCtx = null; }
+  updateAudioDiagnostics();
+  return audioCtx;
+}
+
+function setPlaybackAudioSession() {
+  try { if (navigator.audioSession && 'type' in navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+}
+
+async function recoverAudioOutput(restartRunning = false) {
+  setPlaybackAudioSession();
+  if (!audioCtx || audioCtx.state === 'closed') { updateAudioDiagnostics(); return; }
+  try {
+    if (audioCtx.state === 'interrupted') {
+      try { await audioCtx.suspend(); } catch (e) {}
+      try { await audioCtx.resume(); } catch (e) {}
+    } else if (audioCtx.state === 'suspended') {
+      await audioCtx.resume();
+    } else if (restartRunning && audioCtx.state === 'running') {
+      await audioCtx.suspend();
+      await audioCtx.resume();
+    }
   } catch (e) {}
+  updateAudioDiagnostics();
+}
+
+async function prepareAudioOutput() {
+  setPlaybackAudioSession();
+  createAudioContextIfNeeded();
+  await recoverAudioOutput();
 }
 
 function resetCameraState() {
@@ -199,6 +241,9 @@ async function start() {
   const motionOnlyFallback = $('chkPerson').checked && !model && !!modelError;
   resetCameraState();
   try {
+    // Khởi tạo/đánh thức bộ phát trong thao tác chạm, trước khi mở camera.
+    if ($('sndStyle').value === 'welcome' && !SOUNDS.welcome) unlockSpeech();
+    await prepareAudioOutput();
     const vc = { width: { ideal: 1280 }, height: { ideal: 720 } };
     if (deviceId) vc.deviceId = { exact: deviceId }; else vc.facingMode = facing;
     if (eco) vc.frameRate = { ideal: 10 };      // tiết kiệm pin: khoảng 10 khung hình/giây
@@ -211,6 +256,8 @@ async function start() {
     }
     video.srcObject = stream;
     await video.play();
+    setPlaybackAudioSession();
+    await recoverAudioOutput();
     await listCameras();
     const st = stream.getVideoTracks()[0].getSettings();
     const lbl = (stream.getVideoTracks()[0].label || '').toLowerCase();
@@ -218,12 +265,7 @@ async function start() {
     $('chkMirror').checked = isFront;
     applyMirror();
     redrawZones();
-    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-    unlockSpeech();
-    // Safari iOS có thể đổi route âm thanh sau khi bật camera; khôi phục phiên phát nếu API hỗ trợ.
-    try { if (navigator.audioSession && 'type' in navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
     Object.keys(SOUNDS).forEach(k => loadSound(k).then(updateVoiceHint));
-    await recoverAudioOutput();
     try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
     if (motionOnlyFallback) {
       $('chkPerson').checked = false;
@@ -358,8 +400,8 @@ function setMute(m) {
 
 async function beep() {
   if (muted) return;
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  if (!createAudioContextIfNeeded()) return;
+  if (audioCtx.state !== 'running') await recoverAudioOutput();
   const v = Number($('vol').value) / 100;
   const style = $('sndStyle').value;
   if (await playSound(style, v)) return;
@@ -388,7 +430,8 @@ function loadSound(key) {
 async function playSound(key, v) {
   const buf = await loadSound(key);
   if (!buf || !audioCtx) return false;
-  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  if (audioCtx.state !== 'running') await recoverAudioOutput();
+  if (audioCtx.state !== 'running') return false;
   const src = audioCtx.createBufferSource(), g = audioCtx.createGain(), comp = audioCtx.createDynamicsCompressor();
   // Khuếch đại lên tới 2.8x + compressor để bù suy giảm âm lượng trên iPhone khi mở camera mà không bị vỡ tiếng
   src.buffer = buf; g.gain.value = v * 2.8;
@@ -533,7 +576,7 @@ function scheduleAudioRecoveryAfterReturn() {
   audioReturnTimer = setTimeout(async () => {
     audioReturnTimer = null;
     if (document.visibilityState !== 'visible' || !stream) return;
-    await recoverAudioOutput();
+    await recoverAudioOutput(true);
     if ('wakeLock' in navigator) {
       try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
     }
@@ -837,6 +880,7 @@ applyShotsLock();
 buildMask();
 trimShots();
 updateVoiceHint();
+updateAudioDiagnostics();
 
 $('chkPerson').addEventListener('change', () => {
   if ($('chkPerson').checked && !model) { modelError = ''; loadModel(); } else updateStartButton();
