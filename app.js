@@ -187,7 +187,7 @@ function trigger(msg, bbox) {
   $('slast').textContent = 'Báo lần cuối: ' + new Date().toLocaleTimeString('vi-VN');
   // Chụp ảnh trước, và mỗi hành động chạy độc lập: một cái lỗi không được chặn các cái còn lại
   try { snapshot(msg); } catch (e) { setStatus('Lỗi chụp ảnh: ' + (e && e.message || e), '#ffb84d'); }
-  try { if ($('chkSound').checked) beep(); } catch (e) {}
+  try { beep(); } catch (e) {}   // beep() tự im khi công tắc Âm thanh đang TẮT
   try { if ($('chkVibe').checked && navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {}
   try {
     if ($('chkNotify').checked && typeof Notification !== 'undefined' && Notification.permission === 'granted')
@@ -486,7 +486,7 @@ try { if (window.ResizeObserver) new ResizeObserver(redrawZones).observe(stage);
 /* ===== Lưu / đọc cài đặt ===== */
 const SAVE_KEY = 'camSettings.v1';
 const SAVE_VALUES = ['sens', 'cool', 'vol', 'sndStyle', 'shots', 'conf'];
-const SAVE_CHECKS = ['chkPerson', 'chkSound', 'chkVibe', 'chkAuto'];
+const SAVE_CHECKS = ['chkPerson', 'chkVibe', 'chkAuto', 'chkEditDetect', 'chkEditSound', 'chkEditShots'];
 
 function saveSettings() {
   try {
@@ -517,7 +517,7 @@ function loadSettings() {
     $('vVol').textContent = $('vol').value;
     if (typeof s.light === 'boolean') setTheme(s.light);
     if (typeof s.eco === 'boolean') setEco(s.eco);
-    setMute(!!s.muted);
+    setMute(!!s.muted || s.chkSound === false);   // cài đặt cũ đã bỏ tích 'Phát âm báo' thì coi như tắt tiếng
     if (s.facing === 'user' || s.facing === 'environment') facing = s.facing;
     deviceId = s.deviceId || null;
     if (Array.isArray(s.zones)) {
@@ -572,7 +572,107 @@ $('btnTheme').onclick = () => {
 // Mặc định theo giao diện của điện thoại, nếu bạn đã chọn thì dùng lựa chọn đã lưu
 try { setTheme(!!(window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches)); } catch (e) {}
 
+/* ===== Thanh trượt mới =====
+   Chỉ kéo được khi chạm đúng vào núm tròn; chạm hay vuốt lên thanh để cuộn trang không làm nhảy số.
+   Có nút − và + để chỉnh từng nấc. Ô <input type="range"> gốc được giữ (ẩn) làm nơi lưu giá trị. */
+function enhanceRange(input) {
+  const min = Number(input.min), max = Number(input.max), step = Number(input.step) || 1;
+  const dec = (String(input.step).split('.')[1] || '').length;
+  const w = document.createElement('div');
+  w.className = 'rs';
+  w.innerHTML = '<button type="button" class="rs-b" aria-label="Giảm">−</button>' +
+    '<div class="rs-track"><div class="rs-bar"></div><div class="rs-fill"></div>' +
+    '<div class="rs-thumb" role="slider" tabindex="0"><i></i></div></div>' +
+    '<button type="button" class="rs-b" aria-label="Tăng">+</button>';
+  input.style.display = 'none';
+  input.after(w);
+  const minus = w.querySelectorAll('.rs-b')[0], plus = w.querySelectorAll('.rs-b')[1];
+  const track = w.querySelector('.rs-track'), thumb = w.querySelector('.rs-thumb');
+  const clamp = v => Math.min(max, Math.max(min, v));
+  const snap = v => Number((Math.round((clamp(v) - min) / step) * step + min).toFixed(dec));
+
+  function sync() {
+    const v = clamp(Number(input.value));
+    w.style.setProperty('--p', (v - min) / (max - min));
+    thumb.setAttribute('aria-valuemin', min);
+    thumb.setAttribute('aria-valuemax', max);
+    thumb.setAttribute('aria-valuenow', v);
+  }
+  function setVal(v, final) {
+    v = snap(v);
+    if (v !== Number(input.value)) { input.value = v; input.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (final) input.dispatchEvent(new Event('change', { bubbles: true }));
+    sync();
+  }
+
+  // Ô gốc đang bị khóa (disabled) thì mọi cách chỉnh, kể cả bàn phím, đều không có tác dụng
+  minus.onclick = () => { if (!input.disabled) setVal(Number(input.value) - step, true); };
+  plus.onclick = () => { if (!input.disabled) setVal(Number(input.value) + step, true); };
+
+  let dragging = false, grab = 0;
+  thumb.addEventListener('pointerdown', e => {
+    if (input.disabled) return;
+    dragging = true;
+    const tb = thumb.getBoundingClientRect();
+    grab = e.clientX - (tb.left + tb.width / 2);   // chạm lệch tâm núm bao nhiêu thì giữ nguyên độ lệch, núm không giật
+    try { thumb.setPointerCapture(e.pointerId); } catch (err) {}
+    thumb.classList.add('on');
+    e.preventDefault();
+  });
+  thumb.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const r = track.getBoundingClientRect();
+    const p = Math.min(1, Math.max(0, (e.clientX - grab - r.left - 18) / (r.width - 36)));
+    setVal(min + p * (max - min), false);
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    thumb.classList.remove('on');
+    setVal(Number(input.value), true);
+  };
+  thumb.addEventListener('pointerup', end);
+  thumb.addEventListener('pointercancel', end);
+  thumb.addEventListener('keydown', e => {
+    const dir = (e.key === 'ArrowRight' || e.key === 'ArrowUp') ? 1 : (e.key === 'ArrowLeft' || e.key === 'ArrowDown') ? -1 : 0;
+    if (dir && !input.disabled) { e.preventDefault(); setVal(Number(input.value) + dir * step, true); }
+  });
+
+  input._sync = sync;
+  sync();
+}
+function syncRanges() {
+  document.querySelectorAll('input[type=range]').forEach(i => { if (i._sync) i._sync(); });
+}
+['sens', 'conf', 'cool', 'vol', 'shots'].forEach(id => enhanceRange($(id)));
+
+// Khóa/mở khóa phần Phát hiện: có tích mới chỉnh được, bỏ tích thì mọi ô trong khung bị khóa
+function applyDetectLock() {
+  const editable = $('chkEditDetect').checked;
+  ['chkPerson', 'conf', 'sens', 'cool'].forEach(id => { $(id).disabled = !editable; });
+  $('detectCard').classList.toggle('locked', !editable);
+}
+$('chkEditDetect').addEventListener('change', applyDetectLock);
+
+// Khóa/mở khóa phần Âm thanh & cảnh báo: bỏ tích thì cả khung mờ đi, không chạm và không dùng bàn phím được
+function applyInertLock(cardId, chkId) {
+  const card = $(cardId), editable = $(chkId).checked;
+  card.classList.toggle('locked', !editable);
+  [...card.children].forEach(c => {
+    if (c.tagName === 'B' || c.classList.contains('keep')) return;   // tiêu đề, ô tích và vùng nội dung giữ nguyên
+    if (editable) c.removeAttribute('inert'); else c.setAttribute('inert', '');
+  });
+}
+function applySoundLock() { applyInertLock('soundCard', 'chkEditSound'); }
+function applyShotsLock() { applyInertLock('shotsCard', 'chkEditShots'); }
+$('chkEditSound').addEventListener('change', applySoundLock);
+$('chkEditShots').addEventListener('change', applyShotsLock);
+
 loadSettings();
+syncRanges();
+applyDetectLock();
+applySoundLock();
+applyShotsLock();
 buildMask();
 trimShots();
 updateVoiceHint();

@@ -33,6 +33,18 @@
   .sw.sw-theme { background:#555; }
   .sw.sw-eco { background:#555; }
   .sw.sw-eco.sw-on { background:#35c46a; }
+  /* Thanh trượt mới: chỉ kéo khi chạm vào núm, chạm lên thanh không làm nhảy số, có nút − / + */
+  .rs { display:flex; align-items:center; gap:4px; margin:2px 0 8px; user-select:none; -webkit-user-select:none; }
+  .rs-b { flex:none; width:40px; height:40px; border-radius:50%; border:0; padding:0; margin:0; background:#555; color:#fff; font-size:22px; line-height:1; touch-action:manipulation; }
+  .rs-track { position:relative; flex:1; height:44px; touch-action:pan-y; }
+  .rs-bar { position:absolute; left:18px; right:18px; top:19px; height:6px; border-radius:3px; background:#8886; }
+  .rs-fill { position:absolute; left:18px; top:19px; height:6px; border-radius:3px; background:var(--acc); width:calc((100% - 36px) * var(--p, 0)); }
+  .rs-thumb { position:absolute; top:0; width:36px; height:44px; left:calc(18px + (100% - 36px) * var(--p, 0)); transform:translateX(-50%); touch-action:none; display:flex; align-items:center; justify-content:center; outline:none; }
+  .rs-thumb i { width:26px; height:26px; border-radius:50%; background:#fff; box-shadow:0 1px 5px rgba(0,0,0,.5); border:2px solid var(--acc); transition:transform .1s; }
+  .rs-thumb.on i, .rs-thumb:focus-visible i { transform:scale(1.15); }
+  .card:not(.locked) input[type=range]:disabled + .rs { opacity:.35; pointer-events:none; }
+  /* Khung bị khóa: mờ hết và không chạm vào được, trừ tiêu đề và ô tích mở khóa */
+  .card.locked > *:not(.keep):not(b) { opacity:.35; pointer-events:none; }
   .sw.sw-theme.sw-on { background:#e0a800; }
   .sw { flex:none; width:64px; height:36px; border-radius:18px; border:0; padding:0; margin:0; background:#b33; position:relative; transition:background .2s; }
   .sw i { position:absolute; top:4px; left:4px; width:28px; height:28px; border-radius:50%; background:#fff; transition:transform .2s; }
@@ -97,8 +109,9 @@
   <small id="zoneHint">Bật camera, bấm một nút vẽ rồi kéo ngón tay trên hình để khoanh vùng. Có vùng canh (xanh) thì chỉ canh trong vùng đó. Vùng bỏ qua (đỏ) dùng cho TV, gương, đường đi ngoài cổng.</small>
 </div>
 
-<div class="card">
+<div class="card" id="detectCard">
   <b>🎯 Phát hiện</b>
+  <label class="row keep"><input type="checkbox" id="chkEditDetect"> 🔓 Tích để chỉnh phần Phát hiện (bỏ tích là khóa)</label>
   <label class="row"><input type="checkbox" id="chkPerson" checked> Chỉ báo khi là NGƯỜI</label>
 
   <label>Độ tin cậy nhận diện người: từ <b id="vConf">75</b>% trở lên mới báo</label>
@@ -111,10 +124,9 @@
   <input type="range" id="cool" min="2" max="30" step="1" value="5">
 </div>
 
-<div class="card">
+<div class="card" id="soundCard">
   <b>🔔 Âm thanh &amp; cảnh báo</b>
-  <label class="row"><input type="checkbox" id="chkSound" checked> Phát âm báo khi phát hiện</label>
-
+  <label class="row keep"><input type="checkbox" id="chkEditSound"> 🔓 Tích để chỉnh phần Âm thanh &amp; cảnh báo (bỏ tích là khóa)</label>
   <div class="row" style="justify-content:space-between;margin-top:10px">
     <span id="muteLabel" style="font-size:16px">🔊 Âm thanh: BẬT</span>
     <button id="btnMute" class="sw sw-on" role="switch" aria-checked="true" aria-label="Bật/tắt âm thanh"><i></i></button>
@@ -141,15 +153,20 @@
 </div>
 
 <div class="card">
-  <b>Ảnh chụp khi phát hiện</b>
-  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
-  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
-  <div id="log"></div>
+  <b>⚙ Khác</b>
+  <small style="display:block;margin-top:6px">Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.</small>
+  <div style="margin-top:14px;padding-top:14px;border-top:1px solid #8884">
+    <button id="btnReset" style="background:#b33;margin:0">♻ Đặt lại toàn bộ cài đặt</button>
+    <small style="display:block;margin-top:6px">Xóa mọi cài đặt và vùng giám sát đã lưu rồi tải lại trang. Ảnh chụp đang hiện trên trang cũng mất.</small>
+  </div>
 </div>
 
-<div class="card">
-  <small>Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.</small>
-  <div><button id="btnReset" style="background:#555;margin-top:10px">♻ Đặt lại cài đặt</button></div>
+<div class="card" id="shotsCard">
+  <b>Ảnh chụp khi phát hiện</b>
+  <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
+  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
+  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
+  <div id="log" class="keep"></div>
 </div>
 
 <div id="saver">
@@ -162,8 +179,8 @@
 <!-- Thư viện AI (chỉ tải khi mở trang). Nếu không có mạng, vẫn dùng được chế độ phát hiện chuyển động. -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
-<script src="sounds.js?v=42"></script>
-<script src="app.js?v=42"></script>
+<script src="sounds.js?v=44"></script>
+<script src="app.js?v=47"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>
