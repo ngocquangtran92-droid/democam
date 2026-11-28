@@ -242,6 +242,7 @@ function resetCameraState() {
   stream = null;
   try { video.pause(); } catch (e) {}
   video.srcObject = null;
+  stage.classList.remove('camera-on');
   prev = null;
   if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
   box.style.display = 'none';
@@ -270,6 +271,7 @@ async function start() {
     }
     video.srcObject = stream;
     await video.play();
+    stage.classList.add('camera-on');
     setPlaybackAudioSession();
     await recoverAudioOutput();
     await listCameras();

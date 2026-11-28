@@ -14,7 +14,8 @@
   :root { --bg:#111; --fg:#eee; --card:#1e1e1e; --acc:#2d9cff; --bad:#ff4d4d; --ok:#35c46a; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,sans-serif; padding:12px; max-width:640px; margin:auto; }
-  h1 { font-size:20px; margin:4px 0 4px; text-align:center; }
+  h1 { display:flex; align-items:center; justify-content:center; gap:9px; font-size:20px; margin:4px 0 4px; text-align:center; }
+  h1 img { width:38px; height:38px; flex:none; object-fit:cover; border-radius:8px; }
   .app-subtitle { margin:0 0 10px; text-align:center; font-size:14px; opacity:.75; }
   #quickControls { display:flex; align-items:center; justify-content:space-between; margin:0 0 8px; }
   #aiLoading { position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,.78); color:#fff; text-align:center; }
@@ -25,6 +26,13 @@
   .theme-controls { display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:14px; background:var(--card); border:1px solid #8885; box-shadow:0 4px 16px #0005; }
   #quickControls .lang-pair { gap:5px; padding:4px; border-radius:13px; background:var(--card); border:1px solid #8885; box-shadow:0 4px 16px #0005; }
   .stage { position:relative; background:#000; border-radius:10px; overflow:hidden; }
+  #stage:not(.camera-on) { min-height:260px; }
+  .stage-placeholder { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; pointer-events:none; }
+  .stage-placeholder img { width:clamp(100px, 34vw, 150px); aspect-ratio:1; object-fit:cover; border-radius:18px; box-shadow:0 8px 28px #0008; }
+  .stage-brand { display:flex; gap:8px; font-size:22px; font-weight:800; letter-spacing:.02em; }
+  .stage-brand span:first-child { color:#55a9ff; }
+  .stage-brand span:last-child { color:#fff; }
+  #stage.camera-on .stage-placeholder { display:none; }
   video { width:100%; display:block; }
   #box { position:absolute; border:3px solid var(--bad); display:none; pointer-events:none; }
   #status { position:absolute; left:8px; top:8px; padding:4px 10px; border-radius:20px; background:rgba(0,0,0,.65); font-size:14px; }
@@ -96,7 +104,7 @@
 </head>
 <body>
 <header class="app-header">
-  <h1>📷 GuardDog AI Cam</h1>
+  <h1><img src="guarddog-icon-192.png" alt="" aria-hidden="true">GuardDog AI Cam</h1>
   <p class="app-subtitle">Biến điện thoại cũ thành vệ sĩ AI gác cửa 24/7</p>
 </header>
 
@@ -130,6 +138,10 @@
 
 <div class="stage" id="stage">
   <video id="video" playsinline muted autoplay></video>
+  <div class="stage-placeholder" aria-hidden="true">
+    <img src="guarddog-icon-192.png" alt="">
+    <div class="stage-brand"><span>GuardDog</span><span>AI Cam</span></div>
+  </div>
   <canvas id="zc"></canvas>
   <div id="box"></div>
   <div id="status">Chưa bật</div>
@@ -258,7 +270,7 @@
 
 <!-- Thư viện AI được tải nền khi bắt đầu nhận diện người để trang mở nhanh hơn. -->
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=82"></script>
+<script src="app.js?v=83"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>
