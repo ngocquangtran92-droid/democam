@@ -1,11 +1,14 @@
 let language = 'vi';
 const UI_EN = {
-  'Giám sát camera phát hiện người':'Camera Monitor – Person Detection', '📷 Giám sát camera phát hiện người':'📷 Camera Monitor – Person Detection', 'Chưa bật':'Not started',
+  'GuardDog AI Cam':'GuardDog AI Cam', '📷 GuardDog AI Cam':'📷 GuardDog AI Cam',
+  'Biến điện thoại cũ thành vệ sĩ AI gác cửa 24/7':'Turn your old phone into a 24/7 AI-powered door guard', 'Chưa bật':'Not started',
   '▶ Bật camera':'▶ Start Camera', '▶ Bật camera (chỉ chuyển động)':'▶ Start camera (motion only)', '⏳ Đang tải AI...':'⏳ Loading AI...', 'Đang tải AI...':'Loading AI...', '⚠ Chưa có AI':'⚠ AI unavailable', '■ Dừng':'■ Stop',
   'Mô hình AI đang tải lần đầu. Thời gian phụ thuộc vào mạng.':'The AI model is loading for the first time. Time depends on your connection.',
   'Tiếp tục không dùng AI':'Continue without AI',
   'Chế độ này chỉ phát hiện chuyển động, không nhận diện người. Bóng đổ, ánh sáng hoặc TV cũng có thể kích hoạt cảnh báo.':'This mode detects motion only; it does not recognize people. Shadows, lighting changes, or TVs may also trigger alerts.',
   'Đã chọn chế độ phát hiện chuyển động.':'Motion-detection mode selected.',
+  'Đang ở chế độ không AI':'Motion-only mode',
+  '🔄 Thử tải AI lại':'🔄 Retry AI',
   '🔄 Trước/Sau':'🔄 Front/Back', '🌑 Màn hình đen':'🌑 Black Screen', '🔄 Tải lại':'🔄 Reload',
   'Chọn camera cụ thể (camera thường, góc rộng, zoom)':'Select a camera (main, wide-angle, zoom)', 'Mặc định':'Default',
   'Lật ngang hình (tự bật với camera trước)':'Mirror image (automatic for front camera)',
@@ -24,10 +27,12 @@ const UI_EN = {
   'Giọng nói: "Kính chào quý khách"':'Voice: “Welcome” (Vietnamese)', 'Còi báo trộm xâm nhập':'Intruder alarm siren',
   'Chuông cổng':'Doorbell', 'Chuông nhắc nhở':'Reminder chime', 'Chuông tin nhắn ting ting':'Message chime', '🔊 Thử âm báo':'🔊 Test alert sound',
   'Không phát được giọng nói trên máy này, app dùng chuông thay.':'Speech is unavailable on this device; a chime will be used instead.',
-  'Rung khi phát hiện':'Vibrate on detection', 'Thông báo trình duyệt':'Browser notifications',
+  'Rung khi phát hiện':'Vibrate on detection',
   'Cài đặt ảnh chụp':'Snapshot settings', 'Ảnh đã chụp':'Captured photos', 'Chạm vào ảnh để tải về':'Tap a photo to download', '🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)':'🔓 Check to edit Snapshots (uncheck to lock)',
   'Số ảnh giữ lại:':'Snapshots to keep:', '(ảnh cũ nhất bị đè khi vượt)':'(oldest are removed when the limit is exceeded)',
-  '⚙ Khác':'⚙ Other', 'Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.':'Tip: plug in the device, keep it steady, and keep the screen on. This page requires HTTPS. Settings and monitoring zones are saved on this device.',
+  '⚙ Khác':'⚙ Other', 'Thông tin ứng dụng':'App information',
+  'Ứng dụng: GuardDog AI Cam':'App: GuardDog AI Cam',
+  'Tác giả: Chưa cập nhật':'Author: Not provided', 'Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.':'Tip: plug in the device, keep it steady, and keep the screen on. This page requires HTTPS. Settings and monitoring zones are saved on this device.',
   '♻ Đặt lại toàn bộ cài đặt':'♻ Reset all settings', 'Xóa mọi cài đặt và vùng giám sát đã lưu rồi tải lại trang. Ảnh chụp đang hiện trên trang cũng mất.':'Deletes saved settings and monitoring zones, then reloads the page. Visible snapshots will also be lost.',
   'Đang giám sát':'Monitoring', 'Chạm vào màn hình để thoát':'Tap the screen to exit', 'Giảm':'Decrease', 'Tăng':'Increase',
   'Giao diện sáng hoặc tối':'Light or dark theme', 'Chế độ tiết kiệm pin':'Battery saver', 'Bật/tắt âm thanh':'Toggle sound',
@@ -71,6 +76,7 @@ function translateText(value) {
 let lastStatusText = 'Chưa bật';
 function applyLanguage() {
   document.documentElement.lang = language;
+  document.title = translateText('GuardDog AI Cam');
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let node;
   while ((node = walker.nextNode())) {
@@ -80,7 +86,7 @@ function applyLanguage() {
   for (const el of document.querySelectorAll('[aria-label], [title], [placeholder]')) {
     for (const attr of ['aria-label', 'title', 'placeholder']) if (el.hasAttribute(attr)) el.setAttribute(attr, translateText(el.getAttribute(attr)));
   }
-  document.title = translateText(document.title);
+
   const viButton = document.getElementById('btnLangVi'), enButton = document.getElementById('btnLangEn');
   if (viButton) { viButton.classList.toggle('active', language === 'vi'); viButton.setAttribute('aria-pressed', String(language === 'vi')); }
   if (enButton) { enButton.classList.toggle('active', language === 'en'); enButton.setAttribute('aria-pressed', String(language === 'en')); }
@@ -140,6 +146,8 @@ function updateStartButton() {
   const b = $('btnStart');
   b.disabled = needsAi && !fallback;
   b.textContent = translateText(fallback ? '▶ Bật camera (chỉ chuyển động)' : needsAi ? '⏳ Đang tải AI...' : '▶ Bật camera');
+  $('motionOnlyModeLabel').style.display = $('chkPerson').checked ? 'none' : 'block';
+$('btnRetryAi').style.display = $('chkPerson').checked ? 'none' : 'block';
 }
 
 function setAiLoadingScreen(show) {
@@ -286,7 +294,7 @@ async function start() {
     resetCameraState();
     const message = e && e.message ? e.message : String(e);
     setStatus('Không mở được camera: ' + message, '#ff4d4d');
-    if (deviceId) { deviceId = null; $('camSelect').value = ''; saveSettings(); }
+    if (deviceId) { deviceId = null; const camSelectEl = $('camSelect'); if (camSelectEl) camSelectEl.value = ''; saveSettings(); }
     updateStartButton();
   }
 }
@@ -375,10 +383,6 @@ function trigger(msg, bbox) {
   try { snapshot(msg); } catch (e) { setStatus('Lỗi chụp ảnh: ' + (e && e.message || e), '#ffb84d'); }
   try { beep(); } catch (e) {}   // beep() tự im khi công tắc Âm thanh đang TẮT
   try { if ($('chkVibe').checked && navigator.vibrate) navigator.vibrate([250, 120, 250]); } catch (e) {}
-  try {
-    if ($('chkNotify').checked && typeof Notification !== 'undefined' && Notification.permission === 'granted')
-      new Notification(translateText('Giám sát camera'), { body: translateText(msg) });
-  } catch (e) {}
 }
 
 function tone(freq, at, dur, type, vol) {
@@ -580,6 +584,7 @@ async function listCameras() {
     const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
     const cur = stream && stream.getVideoTracks()[0].getSettings().deviceId;
     const sel = $('camSelect');
+    if (!sel) return;
     sel.innerHTML = '';
     cams.forEach((c, i) => {
       const o = document.createElement('option');
@@ -591,14 +596,15 @@ async function listCameras() {
   } catch (e) {}
 }
 
-$('camSelect').onchange = e => { deviceId = e.target.value || null; if (stream) start(); };
+const camSelectEl = $('camSelect');
+if (camSelectEl) camSelectEl.onchange = e => { deviceId = e.target.value || null; if (stream) start(); };
 $('btnSwitch').onclick = () => {
   facing = facing === 'environment' ? 'user' : 'environment';
   deviceId = null;
   saveSettings();
   if (stream) start();
 };
-$('chkNotify').onchange = e => { if (e.target.checked && 'Notification' in window) Notification.requestPermission(); };
+
 let audioReturnTimer = null;
 function scheduleAudioRecoveryAfterReturn() {
   if (document.visibilityState !== 'visible' || !stream) return;
@@ -719,7 +725,7 @@ function saveSettings() {
     const s = {};
     SAVE_VALUES.forEach(id => s[id] = $(id).value);
     SAVE_CHECKS.forEach(id => { if (!(id === 'chkVibe' && !navigator.vibrate)) s[id] = $(id).checked; });
-    s.chkNotify = $('chkNotify').checked && typeof Notification !== 'undefined' && Notification.permission === 'granted';
+
     s.muted = muted; s.facing = facing; s.deviceId = deviceId; s.zones = zones;
     s.light = document.documentElement.classList.contains('light');
     s.eco = eco; s.language = language;
@@ -737,7 +743,7 @@ function loadSettings() {
     SAVE_CHECKS.forEach(id => {
       if (s[id] !== undefined && !(id === 'chkVibe' && !navigator.vibrate)) $(id).checked = s[id];
     });
-    if (s.chkNotify && typeof Notification !== 'undefined' && Notification.permission === 'granted') $('chkNotify').checked = true;
+
     $('vSens').textContent = Number($('sens').value).toFixed(1);
     $('vCool').textContent = $('cool').value;
     $('vConf').textContent = $('conf').value;
@@ -912,6 +918,7 @@ trimShots();
 updateVoiceHint();
 
 $('chkPerson').addEventListener('change', () => {
+  $('chkPerson').checked && ($('aiMotionNote').style.display = 'none');
   if ($('chkPerson').checked && !model) { modelError = ''; loadModel(); } else updateStartButton();
 });
 applyLanguage();
@@ -925,6 +932,14 @@ $('btnSkipAiLoad').onclick = () => {
   updateStartButton();
   setStatus('Đã chọn chế độ phát hiện chuyển động.', '#ffb84d');
   $('aiMotionNote').style.display = 'block';
+};
+$('btnRetryAi').onclick = () => {
+  $('chkPerson').checked = true;
+  $('aiMotionNote').style.display = 'none';
+  modelError = '';
+  saveSettings();
+  updateStartButton();
+  if (!model) loadModel();
 };
 
 if (!window.APP_SOUNDS) setStatus('Thiếu file sounds.js nên không có âm báo. Hãy upload đủ 3 file.', '#ffb84d');
