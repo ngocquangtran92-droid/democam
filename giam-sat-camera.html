@@ -116,6 +116,7 @@
     <strong id="aiLoadingText">Đang tải AI...</strong>
     <small id="aiLoadingDetail" style="display:block;margin-top:8px">Mô hình AI đang tải lần đầu. Thời gian phụ thuộc vào mạng.</small>
     <button id="btnSkipAiLoad" type="button" style="margin:18px 0 0;background:#555">Tiếp tục không dùng AI</button>
+
   </div>
 </div>
 
@@ -132,8 +133,9 @@
   <button id="btnSwitch" style="background:#555">🔄 Trước/Sau</button>
   <button id="btnSave" style="background:#444">🌑 Màn hình đen</button>
   <button id="btnReload" style="background:#444">🔄 Tải lại</button>
+  <small id="aiMotionNote" style="display:none;margin:8px 0">Chế độ này chỉ phát hiện chuyển động, không nhận diện người. Bóng đổ, ánh sáng hoặc TV cũng có thể kích hoạt cảnh báo.</small>
 
-  <label>Chọn camera cụ thể (sau thường, góc rộng, zoom...)</label>
+  <label>Chọn camera cụ thể (camera thường, góc rộng, zoom)</label>
   <select id="camSelect" style="width:100%;padding:10px;font-size:16px;border-radius:8px">
     <option value="">Mặc định</option>
   </select>
@@ -187,8 +189,6 @@
     <button id="btnMute" class="sw sw-on" role="switch" aria-checked="true" aria-label="Bật/tắt âm thanh"><i></i></button>
   </div>
 
-  <label id="volLabel">Âm lượng: <b id="vVol">60</b>%</label>
-  <input type="range" id="vol" min="10" max="100" step="5" value="60">
 
   <label>Kiểu âm báo</label>
   <div>
@@ -208,6 +208,15 @@
 </div>
 </details>
 
+<div class="card" id="shotsCard">
+  <b>Cài đặt ảnh chụp</b>
+  <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
+  <div class="shots-settings">
+  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
+  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
+  </div>
+</div>
+
 <details class="card">
   <summary><b>⚙ Khác</b></summary>
   <div class="details-body">
@@ -218,15 +227,6 @@
   </div>
   </div>
 </details>
-
-<div class="card" id="shotsCard">
-  <b>Cài đặt ảnh chụp</b>
-  <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
-  <div class="shots-settings">
-  <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
-  <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
-  </div>
-</div>
 
 <div class="card" id="galleryCard">
   <b>Ảnh đã chụp</b>
@@ -243,7 +243,7 @@
 
 <!-- Thư viện AI được tải nền khi bắt đầu nhận diện người để trang mở nhanh hơn. -->
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=67"></script>
+<script src="app.js?v=72"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>

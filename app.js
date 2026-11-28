@@ -4,9 +4,10 @@ const UI_EN = {
   '▶ Bật camera':'▶ Start Camera', '▶ Bật camera (chỉ chuyển động)':'▶ Start camera (motion only)', '⏳ Đang tải AI...':'⏳ Loading AI...', 'Đang tải AI...':'Loading AI...', '⚠ Chưa có AI':'⚠ AI unavailable', '■ Dừng':'■ Stop',
   'Mô hình AI đang tải lần đầu. Thời gian phụ thuộc vào mạng.':'The AI model is loading for the first time. Time depends on your connection.',
   'Tiếp tục không dùng AI':'Continue without AI',
+  'Chế độ này chỉ phát hiện chuyển động, không nhận diện người. Bóng đổ, ánh sáng hoặc TV cũng có thể kích hoạt cảnh báo.':'This mode detects motion only; it does not recognize people. Shadows, lighting changes, or TVs may also trigger alerts.',
   'Đã chọn chế độ phát hiện chuyển động.':'Motion-detection mode selected.',
   '🔄 Trước/Sau':'🔄 Front/Back', '🌑 Màn hình đen':'🌑 Black Screen', '🔄 Tải lại':'🔄 Reload',
-  'Chọn camera cụ thể (sau thường, góc rộng, zoom...)':'Select a camera (main, ultra-wide, telephoto...)', 'Mặc định':'Default',
+  'Chọn camera cụ thể (camera thường, góc rộng, zoom)':'Select a camera (main, wide-angle, zoom)', 'Mặc định':'Default',
   'Lật ngang hình (tự bật với camera trước)':'Mirror image (automatic for front camera)',
   'Tự chuyển sang màn hình đen sau 30 giây không chạm':'Switch to black screen after 30 seconds of inactivity',
   '🔋 Tiết kiệm pin: TẮT':'🔋 Battery saver: OFF', '🔋 Tiết kiệm pin: BẬT':'🔋 Battery saver: ON',
@@ -398,16 +399,16 @@ function setMute(m) {
   b.classList.toggle('sw-on', !muted);
   b.setAttribute('aria-checked', String(!muted));
   $('muteLabel').textContent = translateText(muted ? '🔇 Âm thanh: TẮT' : '🔊 Âm thanh: BẬT');
-  $('vol').disabled = muted;
-  $('vol').style.opacity = muted ? '0.3' : '';
-  $('volLabel').style.opacity = muted ? '0.3' : '';
+
+
+
 }
 
 async function beep() {
   if (muted) return;
   if (!createAudioContextIfNeeded()) return;
   if (audioCtx.state !== 'running') await recoverAudioOutput();
-  const v = Number($('vol').value) / 100;
+  const v = 1; // Âm lượng do thiết bị điều khiển
   const style = $('sndStyle').value;
   if (await playSound(style, v)) return;
   // Dự phòng khi không giải mã được file
@@ -489,7 +490,7 @@ function unlockSpeech() {
   speechSynthesis.speak(u);
 }
 
-$('vol').oninput = e => $('vVol').textContent = e.target.value;
+
 $('btnTest').onclick = beep;
 $('btnMute').onclick = () => { setMute(!muted); saveSettings(); };
 $('muteLabel').onclick = () => $('btnMute').click();
@@ -710,7 +711,7 @@ try { if (window.ResizeObserver) new ResizeObserver(redrawZones).observe(stage);
 
 /* ===== Lưu / đọc cài đặt ===== */
 const SAVE_KEY = 'camSettings.v1';
-const SAVE_VALUES = ['sens', 'cool', 'vol', 'sndStyle', 'shots', 'conf'];
+const SAVE_VALUES = ['sens', 'cool', 'sndStyle', 'shots', 'conf'];
 const SAVE_CHECKS = ['chkPerson', 'chkVibe', 'chkAuto', 'chkEditDetect', 'chkEditSound', 'chkEditShots'];
 
 function saveSettings() {
@@ -740,7 +741,7 @@ function loadSettings() {
     $('vSens').textContent = Number($('sens').value).toFixed(1);
     $('vCool').textContent = $('cool').value;
     $('vConf').textContent = $('conf').value;
-    $('vVol').textContent = $('vol').value;
+
     if (typeof s.light === 'boolean') setTheme(s.light);
     if (typeof s.eco === 'boolean') setEco(s.eco);
     setMute(!!s.muted || s.chkSound === false);   // cài đặt cũ đã bỏ tích 'Phát âm báo' thì coi như tắt tiếng
@@ -870,7 +871,7 @@ function enhanceRange(input) {
 function syncRanges() {
   document.querySelectorAll('input[type=range]').forEach(i => { if (i._sync) i._sync(); });
 }
-['sens', 'conf', 'cool', 'vol', 'shots'].forEach(id => enhanceRange($(id)));
+['sens', 'conf', 'cool', 'shots'].forEach(id => enhanceRange($(id)));
 
 // Khóa/mở khóa phần Phát hiện: có tích mới chỉnh được, bỏ tích thì mọi ô trong khung bị khóa
 function applyDetectLock() {
@@ -923,6 +924,7 @@ $('btnSkipAiLoad').onclick = () => {
   setAiLoadingScreen(false);
   updateStartButton();
   setStatus('Đã chọn chế độ phát hiện chuyển động.', '#ffb84d');
+  $('aiMotionNote').style.display = 'block';
 };
 
 if (!window.APP_SOUNDS) setStatus('Thiếu file sounds.js nên không có âm báo. Hãy upload đủ 3 file.', '#ffb84d');
