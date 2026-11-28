@@ -3,12 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Giám sát camera phát hiện người</title>
+<title>GuardDog AI Cam</title>
+<meta name="theme-color" content="#0d1b34">
+<meta name="apple-mobile-web-app-title" content="GuardDog AI Cam">
+<link rel="icon" type="image/png" sizes="192x192" href="guarddog-icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="guarddog-icon-512.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
   :root { --bg:#111; --fg:#eee; --card:#1e1e1e; --acc:#2d9cff; --bad:#ff4d4d; --ok:#35c46a; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,sans-serif; padding:12px; max-width:640px; margin:auto; }
-  h1 { font-size:20px; margin:4px 0 10px; text-align:center; }
+  h1 { font-size:20px; margin:4px 0 4px; text-align:center; }
+  .app-subtitle { margin:0 0 10px; text-align:center; font-size:14px; opacity:.75; }
   #quickControls { display:flex; align-items:center; justify-content:space-between; margin:0 0 8px; }
   #aiLoading { position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,.78); color:#fff; text-align:center; }
   #aiLoading.show { display:flex; }
@@ -89,7 +96,8 @@
 </head>
 <body>
 <header class="app-header">
-  <h1>📷 Giám sát camera phát hiện người</h1>
+  <h1>📷 GuardDog AI Cam</h1>
+  <p class="app-subtitle">Biến điện thoại cũ thành vệ sĩ AI gác cửa 24/7</p>
 </header>
 
 <div id="quickControls" aria-label="Cài đặt nhanh">
@@ -129,6 +137,8 @@
 
 <div class="card">
   <button id="btnStart">▶ Bật camera</button>
+  <small id="motionOnlyModeLabel" style="display:none;margin:4px 0 10px;color:#ffb84d;font-weight:700">Đang ở chế độ không AI</small>
+  <button id="btnRetryAi" type="button" style="display:none;background:#555;margin:0 0 10px">🔄 Thử tải AI lại</button>
   <button id="btnStop" class="stop" style="display:none">■ Dừng</button>
   <button id="btnSwitch" style="background:#555">🔄 Trước/Sau</button>
   <button id="btnSave" style="background:#444">🌑 Màn hình đen</button>
@@ -204,7 +214,7 @@
   </div>
 
   <label class="row" id="vibeRow"><input type="checkbox" id="chkVibe" checked> <span id="vibeText">Rung khi phát hiện</span></label>
-  <label class="row"><input type="checkbox" id="chkNotify"> Thông báo trình duyệt</label>
+
 </div>
 </details>
 
@@ -225,6 +235,11 @@
     <button id="btnReset" style="background:#b33;margin:0">♻ Đặt lại toàn bộ cài đặt</button>
     <small style="display:block;margin-top:6px">Xóa mọi cài đặt và vùng giám sát đã lưu rồi tải lại trang. Ảnh chụp đang hiện trên trang cũng mất.</small>
   </div>
+  <div style="margin-top:14px;padding-top:14px;border-top:1px solid #8884">
+    <b style="display:block">Thông tin ứng dụng</b>
+    <small style="display:block;margin-top:6px">Ứng dụng: GuardDog AI Cam</small>
+    <small style="display:block;margin-top:4px">Tác giả: Chưa cập nhật</small>
+  </div>
   </div>
 </details>
 
@@ -243,7 +258,7 @@
 
 <!-- Thư viện AI được tải nền khi bắt đầu nhận diện người để trang mở nhanh hơn. -->
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=72"></script>
+<script src="app.js?v=81"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>
