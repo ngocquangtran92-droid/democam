@@ -24,13 +24,12 @@ const UI_EN = {
   'Chuông cổng':'Doorbell', 'Chuông nhắc nhở':'Reminder chime', 'Chuông tin nhắn ting ting':'Message chime', '🔊 Thử âm báo':'🔊 Test alert sound',
   'Không phát được giọng nói trên máy này, app dùng chuông thay.':'Speech is unavailable on this device; a chime will be used instead.',
   'Rung khi phát hiện':'Vibrate on detection', 'Thông báo trình duyệt':'Browser notifications',
-  'Ảnh chụp khi phát hiện':'Snapshots on detection', '🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)':'🔓 Check to edit Snapshots (uncheck to lock)',
+  'Cài đặt ảnh chụp':'Snapshot settings', 'Ảnh đã chụp':'Captured photos', 'Chạm vào ảnh để tải về':'Tap a photo to download', '🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)':'🔓 Check to edit Snapshots (uncheck to lock)',
   'Số ảnh giữ lại:':'Snapshots to keep:', '(ảnh cũ nhất bị đè khi vượt)':'(oldest are removed when the limit is exceeded)',
   '⚙ Khác':'⚙ Other', 'Mẹo: cắm sạc, đặt máy cố định, giữ màn hình sáng. Trang cần chạy trên HTTPS. Cài đặt và vùng giám sát được tự lưu trên máy này.':'Tip: plug in the device, keep it steady, and keep the screen on. This page requires HTTPS. Settings and monitoring zones are saved on this device.',
   '♻ Đặt lại toàn bộ cài đặt':'♻ Reset all settings', 'Xóa mọi cài đặt và vùng giám sát đã lưu rồi tải lại trang. Ảnh chụp đang hiện trên trang cũng mất.':'Deletes saved settings and monitoring zones, then reloads the page. Visible snapshots will also be lost.',
   'Đang giám sát':'Monitoring', 'Chạm vào màn hình để thoát':'Tap the screen to exit', 'Giảm':'Decrease', 'Tăng':'Increase',
   'Giao diện sáng hoặc tối':'Light or dark theme', 'Chế độ tiết kiệm pin':'Battery saver', 'Bật/tắt âm thanh':'Toggle sound',
-  'Trạng thái âm thanh:':'Audio status:', 'chưa tạo':'not created', 'không hỗ trợ':'unsupported',
   '⚠ Có chuyển động':'⚠ Motion detected', 'Có chuyển động':'Motion detected', 'Có người nhưng nằm ngoài vùng giám sát':'Person detected outside the monitoring zone',
   'Có chuyển động, không phải người':'Motion detected, but no person', 'Đã dừng':'Stopped', 'Đang giám sát...':'Monitoring...',
   'Đang tải mô hình AI... (cần mạng)':'Loading AI model... (internet required)', 'Đã sẵn sàng. Bấm Bật camera':'Ready. Tap Start Camera',
@@ -87,7 +86,6 @@ function applyLanguage() {
   if (typeof statusEl !== 'undefined' && statusEl) { statusEl.textContent = translateText(lastStatusText); $('stext').textContent = translateText(lastStatusText); }
   if (typeof renderLastAlertTime === 'function') renderLastAlertTime();
   if (typeof updateStartButton === 'function') updateStartButton();
-  if (typeof updateAudioDiagnostics === 'function') updateAudioDiagnostics();
   if (typeof setMute === 'function') setMute(muted);
   if (typeof setEco === 'function') setEco(eco);
 }
@@ -192,26 +190,13 @@ async function loadModel() {
   }
 }
 
-function updateAudioDiagnostics() {
-  const el = $('audioDiag');
-  if (!el) return;
-  let sessionType = 'không hỗ trợ';
-  try { if (navigator.audioSession && 'type' in navigator.audioSession) sessionType = navigator.audioSession.type || 'unknown'; } catch (e) {}
-  const state = audioCtx ? audioCtx.state : translateText('chưa tạo');
-  const sampleRate = audioCtx && audioCtx.sampleRate ? audioCtx.sampleRate + ' Hz' : '—';
-  el.textContent = translateText('Trạng thái âm thanh:') + ' ' + state + ' · ' + sampleRate + ' · audioSession: ' + translateText(sessionType);
-}
-
 function createAudioContextIfNeeded() {
   if (audioCtx) return audioCtx;
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) { updateAudioDiagnostics(); return null; }
+  if (!AudioContextClass) return null;
   try {
     audioCtx = new AudioContextClass();
-    if (typeof audioCtx.addEventListener === 'function') audioCtx.addEventListener('statechange', updateAudioDiagnostics);
-    else audioCtx.onstatechange = updateAudioDiagnostics;
   } catch (e) { audioCtx = null; }
-  updateAudioDiagnostics();
   return audioCtx;
 }
 
@@ -221,7 +206,7 @@ function setPlaybackAudioSession() {
 
 async function recoverAudioOutput(restartRunning = false) {
   setPlaybackAudioSession();
-  if (!audioCtx || audioCtx.state === 'closed') { updateAudioDiagnostics(); return; }
+  if (!audioCtx || audioCtx.state === 'closed') return;
   try {
     if (audioCtx.state === 'interrupted') {
       try { await audioCtx.suspend(); } catch (e) {}
@@ -233,7 +218,6 @@ async function recoverAudioOutput(restartRunning = false) {
       await audioCtx.resume();
     }
   } catch (e) {}
-  updateAudioDiagnostics();
 }
 
 async function prepareAudioOutput() {
@@ -517,11 +501,35 @@ function snapshot(msg) {
   const cx = c.getContext('2d');
   if ($('chkMirror').checked) { cx.translate(c.width, 0); cx.scale(-1, 1); }
   cx.drawImage(video, 0, 0);
+
+  const capturedAt = new Date();
+  const pad = value => String(value).padStart(2, '0');
+  const stamp = capturedAt.getFullYear() +
+    pad(capturedAt.getMonth() + 1) + pad(capturedAt.getDate()) + '-' +
+    pad(capturedAt.getHours()) + pad(capturedAt.getMinutes()) +
+    pad(capturedAt.getSeconds()) + '-' +
+    String(capturedAt.getMilliseconds()).padStart(3, '0');
+  const fileName = 'camera-' + stamp + '.jpg';
+  const imageUrl = c.toDataURL('image/jpeg', 0.7);
+
   const fig = document.createElement('figure');
-  const img = new Image(); img.src = c.toDataURL('image/jpeg', 0.7);
+  const link = document.createElement('a');
+  link.href = imageUrl;
+  link.download = fileName;
+  link.title = translateText('Chạm vào ảnh để tải về') + ': ' + fileName;
+  const img = new Image();
+  img.src = imageUrl;
+  img.alt = fileName;
+  link.appendChild(img);
+
   const cap = document.createElement('figcaption');
-  cap.textContent = new Date().toLocaleTimeString(language === 'en' ? 'en-US' : 'vi-VN') + ' - ' + translateText(msg);
-  fig.append(img, cap);
+  const name = document.createElement('strong');
+  name.textContent = fileName;
+  const details = document.createElement('small');
+  details.textContent = capturedAt.toLocaleTimeString(language === 'en' ? 'en-US' : 'vi-VN') +
+    ' - ' + translateText(msg);
+  cap.append(name, details);
+  fig.append(link, cap);
   $('log').prepend(fig);
   trimShots(); // giữ đúng số ảnh mới nhất theo thanh kéo
 }
@@ -901,7 +909,6 @@ applyShotsLock();
 buildMask();
 trimShots();
 updateVoiceHint();
-updateAudioDiagnostics();
 
 $('chkPerson').addEventListener('change', () => {
   if ($('chkPerson').checked && !model) { modelError = ''; loadModel(); } else updateStartButton();

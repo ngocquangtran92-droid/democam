@@ -37,9 +37,14 @@
   label { display:block; margin:10px 0 2px; font-size:14px; }
   input[type=range] { width:100%; }
   .row { display:flex; align-items:center; gap:8px; }
-  #log { display:flex; flex-wrap:wrap; gap:6px; }
-  #log figure { margin:0; width:calc(50% - 3px); font-size:12px; }
+  #log { display:flex; flex-wrap:wrap; gap:8px; }
+  #log figure { margin:0; width:calc(50% - 4px); min-width:0; font-size:12px; }
+  #log a { display:block; cursor:pointer; }
+  #log a:focus-visible { outline:2px solid #65a9ff; border-radius:6px; }
   #log img { width:100%; border-radius:6px; display:block; }
+  #log figcaption { padding:5px 1px; overflow-wrap:anywhere; }
+  #log figcaption strong { display:block; }
+  #log figcaption small { display:block; margin-top:3px; }
   .alert { outline:4px solid var(--bad); }
   small { opacity:.7; }
   #zc { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
@@ -68,7 +73,6 @@
   .card:not(.locked) input[type=range]:disabled + .rs { opacity:.35; pointer-events:none; }
   /* Khung bị khóa: mờ hết và không chạm vào được, trừ tiêu đề và ô tích mở khóa */
   .card.locked > *:not(.keep):not(b):not(summary) { opacity:.35; pointer-events:none; }
-  .card.locked > #log { opacity:1; pointer-events:auto; }
   .sw.sw-theme.sw-on { background:#e0a800; }
   .sw { flex:none; width:64px; height:36px; border-radius:18px; border:0; padding:0; margin:0; background:#b33; position:relative; transition:background .2s; }
   .sw i { position:absolute; top:4px; left:4px; width:28px; height:28px; border-radius:50%; background:#fff; transition:transform .2s; }
@@ -177,7 +181,6 @@
 <details class="card" id="soundCard">
   <summary><b>🔔 Âm thanh &amp; cảnh báo</b></summary>
   <label class="row keep"><input type="checkbox" id="chkEditSound"> 🔓 Tích để chỉnh phần Âm thanh &amp; cảnh báo (bỏ tích là khóa)</label>
-  <small id="audioDiag" class="keep" style="display:block;margin:0 12px 10px">Trạng thái âm thanh: chưa tạo · — · audioSession: không hỗ trợ</small>
   <div class="details-body">
   <div class="row" style="justify-content:space-between;margin-top:10px">
     <span id="muteLabel" style="font-size:16px">🔊 Âm thanh: BẬT</span>
@@ -217,13 +220,18 @@
 </details>
 
 <div class="card" id="shotsCard">
-  <b>Ảnh chụp khi phát hiện</b>
+  <b>Cài đặt ảnh chụp</b>
   <label class="row keep"><input type="checkbox" id="chkEditShots"> 🔓 Tích để chỉnh phần Ảnh chụp (bỏ tích là khóa)</label>
   <div class="shots-settings">
   <label>Số ảnh giữ lại: <b id="vShots">20</b> (ảnh cũ nhất bị đè khi vượt)</label>
   <input type="range" id="shots" min="5" max="50" step="1" value="20" style="margin-bottom:10px">
   </div>
-  <div id="log" class="keep"></div>
+</div>
+
+<div class="card" id="galleryCard">
+  <b>Ảnh đã chụp</b>
+  <small style="display:block;margin:6px 0 10px">Chạm vào ảnh để tải về</small>
+  <div id="log"></div>
 </div>
 
 <div id="saver">
@@ -235,7 +243,7 @@
 
 <!-- Thư viện AI được tải nền khi bắt đầu nhận diện người để trang mở nhanh hơn. -->
 <script src="sounds.js?v=44"></script>
-<script src="app.js?v=65"></script>
+<script src="app.js?v=67"></script>
 <script>
 if (typeof $ === 'undefined') document.getElementById('status').textContent = 'Không tải được app.js. Kiểm tra đã upload đúng tên file chưa.';
 </script>
